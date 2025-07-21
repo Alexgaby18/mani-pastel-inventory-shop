@@ -123,10 +123,10 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
             <CardHeader>
               <div className="flex items-center space-x-3">
                 <div className="bg-primary/10 p-3 rounded-lg">
-                  <Package className="h-6 w-6 text-primary" />
+                  <Package className="h-6 w-6 text-accent-foreground" />
                 </div>
                 <div>
-                  <CardTitle className="text-primary">Gestionar Productos</CardTitle>
+                  <CardTitle className="text-accent-foreground">Gestionar Productos</CardTitle>
                   <CardDescription>
                     Administra tu inventario de productos de manicura
                   </CardDescription>
@@ -135,7 +135,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-primary/10 text-primary">
+                <Badge variant="secondary" className="bg-primary/10 text-accent-foreground">
                   156 productos
                 </Badge>
                 <Button variant="ghost" size="sm">
@@ -183,10 +183,10 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
             <CardHeader>
               <div className="flex items-center space-x-3">
                 <div className="bg-success/20 p-3 rounded-lg">
-                  <FileText className="h-6 w-6 text-success-foreground" />
+                  <FileText className="h-6 w-6 text-accent-foreground" />
                 </div>
                 <div>
-                  <CardTitle className="text-success-foreground">Facturas</CardTitle>
+                  <CardTitle className="text-accent-foreground">Facturas</CardTitle>
                   <CardDescription>
                     Gestiona las ventas y facturas
                   </CardDescription>
@@ -195,7 +195,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <Badge variant="secondary" className="bg-success/20 text-success-foreground">
+                <Badge variant="secondary" className="bg-success/20 text-accent-foreground">
                   12 hoy
                 </Badge>
                 <Button variant="ghost" size="sm">
