@@ -113,9 +113,9 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
   });
 
   const products = [
-    { codigo: "ESM001", nombre: "Esmalte Rosa Claro", precio: 15.99 },
-    { codigo: "LIM002", nombre: "Lima de Cristal Premium", precio: 12.99 },
-    { codigo: "ACR003", nombre: "Acrílico Transparente", precio: 24.99 }
+    { codigo: "ESM001", nombre: "Esmalte Rosa Claro", precio: 15.99, stock: 5 },
+    { codigo: "LIM002", nombre: "Lima de Cristal Premium", precio: 12.99, stock: 0 },
+    { codigo: "ACR003", nombre: "Acrílico Transparente", precio: 24.99, stock: 2 }
   ];
 
   const filteredInvoices = invoices.filter(invoice =>
@@ -159,7 +159,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
 
   const handleCreateInvoice = () => {
     if (newInvoice.nombre && newInvoice.ci && newInvoice.productos && newInvoice.productos.length > 0) {
-      const invoiceId = `INV${String(invoices.length + 1).padStart(3, '0')}`;
+      const invoiceId = newInvoice.id || `INV${String(invoices.length + 1).padStart(3, '0')}`;
       const invoice: Invoice = {
         id: invoiceId,
         nombre: newInvoice.nombre,
@@ -195,7 +195,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
               <FileText className="h-6 w-6 text-success-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Gestión de Facturas</h1>
+              <h1 className="text-xl font-bold text-primary">Gestión de Facturas</h1>
               <p className="text-sm text-muted-foreground">Administra las ventas y facturas</p>
             </div>
           </div>
@@ -214,8 +214,17 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6">
-                {/* Customer Data */}
-                <div className="grid grid-cols-3 gap-4">
+                {/* Invoice and Customer Data */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="invoiceNumber">Número de Factura</Label>
+                    <Input
+                      id="invoiceNumber"
+                      value={newInvoice.id || ''}
+                      onChange={(e) => setNewInvoice({...newInvoice, id: e.target.value})}
+                      placeholder="INV001"
+                    />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="customerName">Nombre del Cliente</Label>
                     <Input
@@ -250,16 +259,29 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                   <h3 className="text-lg font-semibold">Agregar Productos</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {products.map((product) => (
-                      <Card key={product.codigo} className="cursor-pointer hover:shadow-md transition-shadow"
-                            onClick={() => handleAddProduct(product.codigo)}>
+                      <Card key={product.codigo} 
+                            className={`cursor-pointer hover:shadow-md transition-shadow ${
+                              product.stock === 0 ? 'border-destructive bg-destructive/10' : 'border-success/30'
+                            }`}
+                            onClick={() => product.stock > 0 && handleAddProduct(product.codigo)}>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm">{product.nombre}</CardTitle>
                           <CardDescription>{product.codigo}</CardDescription>
+                          {product.stock === 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              Sin Stock
+                            </Badge>
+                          )}
                         </CardHeader>
                         <CardContent>
                           <div className="flex justify-between items-center">
-                            <span className="text-lg font-bold">${product.precio}</span>
-                            <Button size="sm" variant="outline">
+                            <div>
+                              <span className="text-lg font-bold">${product.precio}</span>
+                              <p className={`text-xs ${product.stock === 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                Stock: {product.stock}
+                              </p>
+                            </div>
+                            <Button size="sm" variant="outline" disabled={product.stock === 0}>
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
