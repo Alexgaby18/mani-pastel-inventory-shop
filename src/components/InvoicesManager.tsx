@@ -192,16 +192,16 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
               Volver
             </Button>
             <div className="bg-success/20 p-2 rounded-lg">
-              <FileText className="h-6 w-6 text-success-foreground" />
+              <FileText className="h-6 w-6 text-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-primary">Gestión de Facturas</h1>
+              <h1 className="text-xl font-bold text-accent-foreground">Gestión de Facturas</h1>
               <p className="text-sm text-muted-foreground">Administra las ventas y facturas</p>
             </div>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-success hover:bg-success/90 text-success-foreground">
+              <Button className="bg-success hover:bg-success/90 text-accent-foreground">
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Factura
               </Button>
@@ -378,7 +378,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="bg-success/20 p-3 rounded-lg">
-                      <FileText className="h-6 w-6 text-success-foreground" />
+                      <FileText className="h-6 w-6 text-accent-foreground" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground">{invoice.id}</h3>
@@ -404,7 +404,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                         <DollarSign className="h-5 w-5 mr-1" />
                         {invoice.total.toFixed(2)}
                       </div>
-                      <Badge variant="secondary" className="bg-success/20 text-success-foreground">
+                      <Badge variant="secondary" className="bg-success/20 text-accent-foreground">
                         {invoice.productos.length} productos
                       </Badge>
                     </div>

@@ -95,8 +95,8 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   );
 
   const getStockStatus = (stock: number) => {
+    if (stock === 0) return { status: 'out', color: 'bg-destructive text-destructive-foreground' };
     if (stock <= 5) return { status: 'low', color: 'bg-warning text-warning-foreground' };
-    if (stock <= 10) return { status: 'medium', color: 'bg-secondary text-secondary-foreground' };
     return { status: 'good', color: 'bg-success text-success-foreground' };
   };
 
@@ -130,7 +130,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
               Volver
             </Button>
             <div className="bg-primary/10 p-2 rounded-lg">
-              <Package className="h-6 w-6 text-primary" />
+              <Package className="h-6 w-6 text-accent-foreground" />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">Gestión de Productos</h1>
@@ -299,6 +299,12 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                       <span className="text-muted-foreground">Costo:</span>
                       <span className="font-medium text-foreground">${product.costo}</span>
                     </div>
+                    {stockStatus.status === 'out' && (
+                      <div className="flex items-center text-destructive text-sm">
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        Sin Stock - Requiere reposición
+                      </div>
+                    )}
                     {stockStatus.status === 'low' && (
                       <div className="flex items-center text-warning text-sm">
                         <AlertTriangle className="h-4 w-4 mr-1" />
