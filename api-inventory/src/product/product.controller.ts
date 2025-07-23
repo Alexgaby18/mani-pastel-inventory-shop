@@ -21,14 +21,9 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post('/create')
-  async createProduct(@Res() res, @Body() createProductDto: CreateProductDTO) {
-    console.log('Creating product:', createProductDto);
-
+  async createProduct(@Body() createProductDto: CreateProductDTO) {
     const product = await this.productService.createProduct(createProductDto);
-    res.status(HttpStatus.OK).json({
-      message: 'Product created successfully',
-      product: product,
-    });
+    return product; // <-- Solo el producto
   }
 
   @Get('/')

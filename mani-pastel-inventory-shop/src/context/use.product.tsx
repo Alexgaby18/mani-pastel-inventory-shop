@@ -7,6 +7,5 @@ export const useProduct = () => {
   if (!context) {
     throw new Error("useProduct must be used within a ProductProvider");
   }
-
   return context;
 };

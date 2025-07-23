@@ -4,12 +4,13 @@ import {
   UpdateProduct,
   Product,
 } from "@/interfaces/product.interface";
-import { createProduct, updateProduct } from "../api/products";
+import { createProduct, updateProduct,  getProducts, getProductById, deleteProduct} from "../api/products";
 
 interface ProductContextType {
   products: Product[];
   createProduct: (product: CreateProduct) => Promise<void>;
   updateProduct: (id: string, product: UpdateProduct) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 }
 
 export const ProductContext = createContext<ProductContextType>({
@@ -19,7 +20,10 @@ export const ProductContext = createContext<ProductContextType>({
     },
     updateProduct: async () => {
         throw new Error("updateProduct() not implemented.");
-    }
+    },
+    deleteProduct: async () => {
+        throw new Error("deleteProduct() not implemented.");
+    },
 });
 
 interface Props {
@@ -30,9 +34,7 @@ export const ProductProvider: React.FC<Props> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Fetch products from API or initialize state
-    // This is just a placeholder; you can implement actual fetching logic here
-    setProducts([]);
+    getProducts().then(setProducts);
   }, []);
 
   const handleCreateProduct = async (product: CreateProduct) => {
@@ -47,12 +49,23 @@ export const ProductProvider: React.FC<Props> = ({ children }) => {
     );
   };
 
+  const handleDeleteProduct = async (id: string) => {
+    await deleteProduct(id);
+    setProducts((prev) => prev.filter((p) => p._id !== id));
+  };
+
+  const handleGetProducts = async () => {
+    const fetchedProducts = await getProducts();
+    setProducts(fetchedProducts);
+  };
+
   return (
     <ProductContext.Provider
       value={{
         products,
         createProduct: handleCreateProduct,
         updateProduct: handleUpdateProduct,
+        deleteProduct: handleDeleteProduct,
       }}
     >
       {children}

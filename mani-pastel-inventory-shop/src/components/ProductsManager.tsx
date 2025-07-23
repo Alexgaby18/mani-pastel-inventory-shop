@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { ChangeEvent, FormEvent, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,14 +32,15 @@ import {
 import { useProduct } from '@/context/use.product';
 
 interface Product {
-  codigo: string;
-  nombre: string;
+  _id: string;
+  code: string;
+  name: string;
   stock: number;
-  precio: number;
-  costo: number;
+  price: number;
+  cost: number;
   flete: number;
-  marca_id: string;
-  unidad_de_medida: string;
+  branch: string;
+  unit_measure: string;
 }
 
 interface ProductsManagerProps {
@@ -47,10 +48,22 @@ interface ProductsManagerProps {
 }
 
 export function ProductsManager({ onBack }: ProductsManagerProps) {
-  const { products, createProduct } = useProduct();
+  // Estados locales
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [newProduct, setNewProduct] = useState<Partial<Product>>({});
+  const [newProduct, setNewProduct] = useState({
+    codigo: '',
+    nombre: '',
+    stock: 0,
+    precio: 0,
+    costo: 0,
+    flete: 0,
+    marca_id: '',
+    unidad_de_medida: 'Unidad'
+  });
+
+  // Hook del contexto
+  const { products, createProduct, updateProduct, deleteProduct } = useProduct();
 
   const brands = [
     { id: "1", nombre: "Beauty Pro" },
@@ -58,10 +71,15 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     { id: "3", nombre: "Glam Nails" }
   ];
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products?.filter(
+  (product: Product) =>
+    typeof product.name === "string" &&
+    typeof product.code === "string" &&
+    (
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.code.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+) || [];
 
   const getStockStatus = (stock: number) => {
     if (stock === 0) return { status: 'out', color: 'bg-destructive text-destructive-foreground' };
@@ -69,22 +87,67 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     return { status: 'good', color: 'bg-success text-success-foreground' };
   };
 
-  const handleAddProduct = async () => {
-  if (newProduct.codigo && newProduct.nombre) {
-    await createProduct({
-      code: newProduct.codigo,
-      name: newProduct.nombre,
-      stock: newProduct.stock || 0,
-      price: newProduct.precio || 0,
-      cost: newProduct.costo || 0,
-      flete: newProduct.flete || 0,
-      branch: newProduct.marca_id || "",
-      unit_measure: newProduct.unidad_de_medida || "Unidad"
+  // Manejar cambios en el formulario
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewProduct({
+      ...newProduct,
+      [name]: name === 'stock' || name === 'precio' || name === 'costo' || name === 'flete' 
+        ? parseFloat(value) || 0 
+        : value
     });
-    setNewProduct({});
-    setIsAddDialogOpen(false);
+  };
+
+  // Manejar cambios en los selects
+  const handleSelectChange = (name: string, value: string) => {
+    setNewProduct({
+      ...newProduct,
+      [name]: value
+    });
+  };
+
+  // Manejar envío del formulario
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  if (newProduct.codigo && newProduct.nombre) {
+    try {
+      await createProduct({
+        code: newProduct.codigo,
+        name: newProduct.nombre,
+        stock: newProduct.stock,
+        price: newProduct.precio,
+        cost: newProduct.costo,
+        flete: newProduct.flete,
+        branch: newProduct.marca_id,
+        unit_measure: newProduct.unidad_de_medida
+      });
+      setNewProduct({
+        codigo: '',
+        nombre: '',
+        stock: 0,
+        precio: 0,
+        costo: 0,
+        flete: 0,
+        marca_id: '',
+        unidad_de_medida: 'Unidad'
+      });
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      console.error('Error al crear producto:', error);
+    }
   }
-};
+  };
+
+  // Manejar eliminación de producto
+  const handleDeleteProduct = async (productCode: string) => {
+    try {
+      await deleteProduct(productCode);
+    } catch (error) {
+      console.error('Error al eliminar producto:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-primary-glow/10">
@@ -118,102 +181,122 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   Completa la información del nuevo producto
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="codigo">Código</Label>
-                  <Input
-                    id="codigo"
-                    value={newProduct.codigo || ''}
-                    onChange={(e) => setNewProduct({...newProduct, codigo: e.target.value})}
-                    placeholder="ESM001"
-                  />
+              <form onSubmit={handleSubmit}>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="codigo">Código</Label>
+                    <Input
+                      id="codigo"
+                      name="codigo"
+                      value={newProduct.codigo}
+                      onChange={handleChange}
+                      placeholder="ESM001"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nombre">Nombre</Label>
+                    <Input
+                      id="nombre"
+                      name="nombre"
+                      value={newProduct.nombre}
+                      onChange={handleChange}
+                      placeholder="Esmalte Rosa Claro"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="stock">Stock</Label>
+                    <Input
+                      id="stock"
+                      name="stock"
+                      type="number"
+                      value={newProduct.stock}
+                      onChange={handleChange}
+                      min="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="precio">Precio</Label>
+                    <Input
+                      id="precio"
+                      name="precio"
+                      type="number"
+                      step="0.01"
+                      value={newProduct.precio}
+                      onChange={handleChange}
+                      min="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="costo">Costo</Label>
+                    <Input
+                      id="costo"
+                      name="costo"
+                      type="number"
+                      step="0.01"
+                      value={newProduct.costo}
+                      onChange={handleChange}
+                      min="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="flete">Flete</Label>
+                    <Input
+                      id="flete"
+                      name="flete"
+                      type="number"
+                      step="0.01"
+                      value={newProduct.flete}
+                      onChange={handleChange}
+                      min="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="marca">Marca</Label>
+                    <Select 
+                      value={newProduct.marca_id} 
+                      onValueChange={(value) => handleSelectChange('marca_id', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una marca" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brands.map((brand) => (
+                          <SelectItem key={brand.id} value={brand.id}>
+                            {brand.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="unidad">Unidad de Medida</Label>
+                    <Select 
+                      value={newProduct.unidad_de_medida} 
+                      onValueChange={(value) => handleSelectChange('unidad_de_medida', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona unidad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Unidad">Unidad</SelectItem>
+                        <SelectItem value="Gramos">Gramos</SelectItem>
+                        <SelectItem value="Mililitros">Mililitros</SelectItem>
+                        <SelectItem value="Paquete">Paquete</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nombre">Nombre</Label>
-                  <Input
-                    id="nombre"
-                    value={newProduct.nombre || ''}
-                    onChange={(e) => setNewProduct({...newProduct, nombre: e.target.value})}
-                    placeholder="Esmalte Rosa Claro"
-                  />
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" className="bg-primary hover:bg-primary/90">
+                    Agregar Producto
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="stock">Stock</Label>
-                  <Input
-                    id="stock"
-                    type="number"
-                    value={newProduct.stock || 0}
-                    onChange={(e) => setNewProduct({...newProduct, stock: parseInt(e.target.value) || 0})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="precio">Precio</Label>
-                  <Input
-                    id="precio"
-                    type="number"
-                    step="0.01"
-                    value={newProduct.precio || 0}
-                    onChange={(e) => setNewProduct({...newProduct, precio: parseFloat(e.target.value) || 0})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="costo">Costo</Label>
-                  <Input
-                    id="costo"
-                    type="number"
-                    step="0.01"
-                    value={newProduct.costo || 0}
-                    onChange={(e) => setNewProduct({...newProduct, costo: parseFloat(e.target.value) || 0})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="flete">Flete</Label>
-                  <Input
-                    id="flete"
-                    type="number"
-                    step="0.01"
-                    value={newProduct.flete || 0}
-                    onChange={(e) => setNewProduct({...newProduct, flete: parseFloat(e.target.value) || 0})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="marca">Marca</Label>
-                  <Select value={newProduct.marca_id} onValueChange={(value) => setNewProduct({...newProduct, marca_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una marca" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brands.map((brand) => (
-                        <SelectItem key={brand.id} value={brand.id}>
-                          {brand.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="unidad">Unidad de Medida</Label>
-                  <Select value={newProduct.unidad_de_medida} onValueChange={(value) => setNewProduct({...newProduct, unidad_de_medida: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona unidad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Unidad">Unidad</SelectItem>
-                      <SelectItem value="Gramos">Gramos</SelectItem>
-                      <SelectItem value="Mililitros">Mililitros</SelectItem>
-                      <SelectItem value="Paquete">Paquete</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleAddProduct} className="bg-primary hover:bg-primary/90">
-                  Agregar Producto
-                </Button>
-              </div>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -239,17 +322,17 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
 
         {/* Products List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProducts.map((product) => {
+          {filteredProducts.map((product: Product) => {
             const stockStatus = getStockStatus(product.stock);
             const brandName = brands.find(b => b.id === product.branch)?.nombre || 'Sin marca';
             
             return (
-              <Card key={product.code} className="border-primary/20 hover:shadow-lg transition-shadow">
+              <Card key={product._id} className="border-primary/20 hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <CardTitle className="text-lg text-foreground">{product.name}</CardTitle>
-                      <CardDescription>{product.code} • {product.branch}</CardDescription>
+                      <CardDescription>{product.code} • {brandName}</CardDescription>
                     </div>
                     <Badge className={stockStatus.color}>
                       {product.stock} {product.unit_measure}
@@ -289,7 +372,12 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                         <Edit className="h-4 w-4 mr-1" />
                         Editar
                       </Button>
-                      <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteProduct(product._id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
