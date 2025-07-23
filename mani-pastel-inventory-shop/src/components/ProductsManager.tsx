@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useProduct } from '@/context/use.product';
 
 interface Product {
   codigo: string;
@@ -46,39 +47,7 @@ interface ProductsManagerProps {
 }
 
 export function ProductsManager({ onBack }: ProductsManagerProps) {
-  const [products, setProducts] = useState<Product[]>([
-    {
-      codigo: "ESM001",
-      nombre: "Esmalte Rosa Claro",
-      stock: 25,
-      precio: 15.99,
-      costo: 8.50,
-      flete: 0.50,
-      marca_id: "1",
-      unidad_de_medida: "Unidad"
-    },
-    {
-      codigo: "LIM002", 
-      nombre: "Lima de Cristal Premium",
-      stock: 5,
-      precio: 12.99,
-      costo: 6.00,
-      flete: 0.30,
-      marca_id: "2",
-      unidad_de_medida: "Unidad"
-    },
-    {
-      codigo: "ACR003",
-      nombre: "Acrílico Transparente",
-      stock: 15,
-      precio: 24.99,
-      costo: 14.00,
-      flete: 1.00,
-      marca_id: "1",
-      unidad_de_medida: "Gramos"
-    }
-  ]);
-
+  const { products, createProduct } = useProduct();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({});
@@ -90,8 +59,8 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   ];
 
   const filteredProducts = products.filter(product =>
-    product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStockStatus = (stock: number) => {
@@ -100,24 +69,22 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     return { status: 'good', color: 'bg-success text-success-foreground' };
   };
 
-  const handleAddProduct = () => {
-    if (newProduct.codigo && newProduct.nombre) {
-      const product: Product = {
-        codigo: newProduct.codigo,
-        nombre: newProduct.nombre,
-        stock: newProduct.stock || 0,
-        precio: newProduct.precio || 0,
-        costo: newProduct.costo || 0,
-        flete: newProduct.flete || 0,
-        marca_id: newProduct.marca_id || "1",
-        unidad_de_medida: newProduct.unidad_de_medida || "Unidad"
-      };
-      
-      setProducts([...products, product]);
-      setNewProduct({});
-      setIsAddDialogOpen(false);
-    }
-  };
+  const handleAddProduct = async () => {
+  if (newProduct.codigo && newProduct.nombre) {
+    await createProduct({
+      code: newProduct.codigo,
+      name: newProduct.nombre,
+      stock: newProduct.stock || 0,
+      price: newProduct.precio || 0,
+      cost: newProduct.costo || 0,
+      flete: newProduct.flete || 0,
+      branch: newProduct.marca_id || "",
+      unit_measure: newProduct.unidad_de_medida || "Unidad"
+    });
+    setNewProduct({});
+    setIsAddDialogOpen(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-primary-glow/10">
@@ -274,18 +241,18 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProducts.map((product) => {
             const stockStatus = getStockStatus(product.stock);
-            const brandName = brands.find(b => b.id === product.marca_id)?.nombre || 'Sin marca';
+            const brandName = brands.find(b => b.id === product.branch)?.nombre || 'Sin marca';
             
             return (
-              <Card key={product.codigo} className="border-primary/20 hover:shadow-lg transition-shadow">
+              <Card key={product.code} className="border-primary/20 hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-lg text-foreground">{product.nombre}</CardTitle>
-                      <CardDescription>{product.codigo} • {brandName}</CardDescription>
+                      <CardTitle className="text-lg text-foreground">{product.name}</CardTitle>
+                      <CardDescription>{product.code} • {product.branch}</CardDescription>
                     </div>
                     <Badge className={stockStatus.color}>
-                      {product.stock} {product.unidad_de_medida}
+                      {product.stock} {product.unit_measure}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -293,11 +260,11 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Precio:</span>
-                      <span className="font-medium text-foreground">${product.precio}</span>
+                      <span className="font-medium text-foreground">${product.price}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Costo:</span>
-                      <span className="font-medium text-foreground">${product.costo}</span>
+                      <span className="font-medium text-foreground">${product.cost}</span>
                     </div>
                     {stockStatus.status === 'out' && (
                       <div className="flex items-center text-destructive text-sm">

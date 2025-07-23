@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   Controller,
   Post,
@@ -10,6 +13,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { CreateProductDTO } from './dto/product.dto';
+import { UpdatedProductDTO } from './dto/udapted.product.dto';
 import { ProductService } from './product.service';
 
 @Controller('product')
@@ -21,7 +25,6 @@ export class ProductController {
     console.log('Creating product:', createProductDto);
 
     const product = await this.productService.createProduct(createProductDto);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     res.status(HttpStatus.OK).json({
       message: 'Product created successfully',
       product: product,
@@ -34,13 +37,10 @@ export class ProductController {
 
     try {
       const products = await this.productService.getAllProducts();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.status(HttpStatus.OK).json(products);
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Error fetching products',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         error: err.message,
       });
     }
@@ -53,18 +53,14 @@ export class ProductController {
     try {
       const product = await this.productService.getProductById(id);
       if (!product) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
         return res.status(HttpStatus.NOT_FOUND).json({
           message: 'Product not found',
         });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.status(HttpStatus.OK).json(product);
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Error fetching product',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         error: err.message,
       });
     }
@@ -77,21 +73,17 @@ export class ProductController {
     try {
       const deletedProduct = await this.productService.deleteProduct(id);
       if (!deletedProduct) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
         return res.status(HttpStatus.NOT_FOUND).json({
           message: 'Product not found',
         });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.status(HttpStatus.OK).json({
         message: 'Product deleted successfully',
         product: deletedProduct,
       });
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Error deleting product',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         error: err.message,
       });
     }
@@ -101,31 +93,27 @@ export class ProductController {
   async updateProduct(
     @Res() res,
     @Param('id') id: string,
-    @Body() createProductDto: CreateProductDTO,
+    @Body() updateProducts: UpdatedProductDTO,
   ) {
-    console.log('Updating product with ID:', id, 'Data:', createProductDto);
+    console.log('Updating product with ID:', id, 'Data:', updateProducts);
 
     try {
       const updatedProduct = await this.productService.updateProduct(
         id,
-        createProductDto,
+        updateProducts,
       );
       if (!updatedProduct) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
         return res.status(HttpStatus.NOT_FOUND).json({
           message: 'Product not found',
         });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.status(HttpStatus.OK).json({
         message: 'Product updated successfully',
         product: updatedProduct,
       });
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'Error updating product',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         error: err.message,
       });
     }
