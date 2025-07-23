@@ -51,7 +51,19 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   // Estados locales
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newProduct, setNewProduct] = useState({
+    codigo: '',
+    nombre: '',
+    stock: 0,
+    precio: 0,
+    costo: 0,
+    flete: 0,
+    marca_id: '',
+    unidad_de_medida: 'Unidad'
+  });
+  const [editProduct, setEditProduct] = useState({
     codigo: '',
     nombre: '',
     stock: 0,
@@ -87,7 +99,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     return { status: 'good', color: 'bg-success text-success-foreground' };
   };
 
-  // Manejar cambios en el formulario
+  // Manejar cambios en el formulario de crear
   const handleChange = (
     e: ChangeEvent<HTMLInputElement>
   ) => {
@@ -100,7 +112,20 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     });
   };
 
-  // Manejar cambios en los selects
+  // Manejar cambios en el formulario de editar
+  const handleEditChange = (
+    e: ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setEditProduct({
+      ...editProduct,
+      [name]: name === 'stock' || name === 'precio' || name === 'costo' || name === 'flete' 
+        ? parseFloat(value) || 0 
+        : value
+    });
+  };
+
+  // Manejar cambios en los selects para crear
   const handleSelectChange = (name: string, value: string) => {
     setNewProduct({
       ...newProduct,
@@ -108,42 +133,112 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     });
   };
 
-  // Manejar envío del formulario
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  if (newProduct.codigo && newProduct.nombre) {
-    try {
-      await createProduct({
-        code: newProduct.codigo,
-        name: newProduct.nombre,
-        stock: newProduct.stock,
-        price: newProduct.precio,
-        cost: newProduct.costo,
-        flete: newProduct.flete,
-        branch: newProduct.marca_id,
-        unit_measure: newProduct.unidad_de_medida
-      });
-      setNewProduct({
-        codigo: '',
-        nombre: '',
-        stock: 0,
-        precio: 0,
-        costo: 0,
-        flete: 0,
-        marca_id: '',
-        unidad_de_medida: 'Unidad'
-      });
-      setIsAddDialogOpen(false);
-    } catch (error) {
-      console.error('Error al crear producto:', error);
-    }
-  }
+  // Manejar cambios en los selects para editar
+  const handleEditSelectChange = (name: string, value: string) => {
+    setEditProduct({
+      ...editProduct,
+      [name]: value
+    });
   };
 
-  // Manejar eliminación de producto
-  const handleDeleteProduct = async (productCode: string) => {
+  // Abrir modal de edición
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setEditProduct({
+      codigo: product.code,
+      nombre: product.name,
+      stock: product.stock,
+      precio: product.price,
+      costo: product.cost,
+      flete: product.flete,
+      marca_id: product.branch,
+      unidad_de_medida: product.unit_measure
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  // Manejar envío del formulario de crear
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (newProduct.codigo && newProduct.nombre) {
+      try {
+        await handleCreateProduct({
+          code: newProduct.codigo,
+          name: newProduct.nombre,
+          stock: newProduct.stock,
+          price: newProduct.precio,
+          cost: newProduct.costo,
+          flete: newProduct.flete,
+          branch: newProduct.marca_id,
+          unit_measure: newProduct.unidad_de_medida
+        });
+        setNewProduct({
+          codigo: '',
+          nombre: '',
+          stock: 0,
+          precio: 0,
+          costo: 0,
+          flete: 0,
+          marca_id: '',
+          unidad_de_medida: 'Unidad'
+        });
+        setIsAddDialogOpen(false);
+      } catch (error) {
+        console.error('Error al crear producto:', error);
+      }
+    }
+  };
+
+  // Manejar envío del formulario de editar
+  const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (editProduct.codigo && editProduct.nombre && editingProduct) {
+      try {
+        await handleUpdateProduct(editingProduct._id, {
+          code: editProduct.codigo,
+          name: editProduct.nombre,
+          stock: editProduct.stock,
+          price: editProduct.precio,
+          cost: editProduct.costo,
+          flete: editProduct.flete,
+          branch: editProduct.marca_id,
+          unit_measure: editProduct.unidad_de_medida
+        });
+        
+        // Cerrar modal y limpiar estados
+        setIsEditDialogOpen(false);
+        setEditingProduct(null);
+        setEditProduct({
+          codigo: '',
+          nombre: '',
+          stock: 0,
+          precio: 0,
+          costo: 0,
+          flete: 0,
+          marca_id: '',
+          unidad_de_medida: 'Unidad'
+        });
+      } catch (error) {
+        console.error('Error al actualizar producto:', error);
+      }
+    }
+  };
+
+  // Funciones de manejo consistentes
+  const handleCreateProduct = async (product: any) => {
+    const newProduct = await createProduct(product);
+    // Asumiendo que createProduct ya actualiza el estado local
+  };
+
+  const handleUpdateProduct = async (id: string, product: any) => {
+    const updatedProduct = await updateProduct(id, product);
+    // Asumiendo que updateProduct ya actualiza el estado local
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
     try {
-      await deleteProduct(productCode);
+      await deleteProduct(productId);
+      // Asumiendo que deleteProduct ya actualiza el estado local
     } catch (error) {
       console.error('Error al eliminar producto:', error);
     }
@@ -302,6 +397,134 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         </div>
       </div>
 
+      {/* Modal de Edición */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar Producto</DialogTitle>
+            <DialogDescription>
+              Modifica la información del producto seleccionado
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-codigo">Código</Label>
+                <Input
+                  id="edit-codigo"
+                  name="codigo"
+                  value={editProduct.codigo}
+                  onChange={handleEditChange}
+                  placeholder="ESM001"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-nombre">Nombre</Label>
+                <Input
+                  id="edit-nombre"
+                  name="nombre"
+                  value={editProduct.nombre}
+                  onChange={handleEditChange}
+                  placeholder="Esmalte Rosa Claro"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-stock">Stock</Label>
+                <Input
+                  id="edit-stock"
+                  name="stock"
+                  type="number"
+                  value={editProduct.stock}
+                  onChange={handleEditChange}
+                  min="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-precio">Precio</Label>
+                <Input
+                  id="edit-precio"
+                  name="precio"
+                  type="number"
+                  step="0.01"
+                  value={editProduct.precio}
+                  onChange={handleEditChange}
+                  min="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-costo">Costo</Label>
+                <Input
+                  id="edit-costo"
+                  name="costo"
+                  type="number"
+                  step="0.01"
+                  value={editProduct.costo}
+                  onChange={handleEditChange}
+                  min="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-flete">Flete</Label>
+                <Input
+                  id="edit-flete"
+                  name="flete"
+                  type="number"
+                  step="0.01"
+                  value={editProduct.flete}
+                  onChange={handleEditChange}
+                  min="0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-marca">Marca</Label>
+                <Select 
+                  value={editProduct.marca_id} 
+                  onValueChange={(value) => handleEditSelectChange('marca_id', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una marca" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-unidad">Unidad de Medida</Label>
+                <Select 
+                  value={editProduct.unidad_de_medida} 
+                  onValueChange={(value) => handleEditSelectChange('unidad_de_medida', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona unidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Unidad">Unidad</SelectItem>
+                    <SelectItem value="Gramos">Gramos</SelectItem>
+                    <SelectItem value="Mililitros">Mililitros</SelectItem>
+                    <SelectItem value="Paquete">Paquete</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-primary hover:bg-primary/90">
+                Guardar Cambios
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <div className="p-6">
         {/* Search and Filters */}
         <Card className="mb-6 border-primary/20">
@@ -368,7 +591,12 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                       </div>
                     )}
                     <div className="flex space-x-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEditProduct(product)}
+                      >
                         <Edit className="h-4 w-4 mr-1" />
                         Editar
                       </Button>

@@ -112,5 +112,6 @@ export class ProductController {
         error: err.message,
       });
     }
+    return updateProducts; // <-- Solo el producto actualizado
   }
 }

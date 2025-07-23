@@ -45,8 +45,10 @@ export const ProductProvider: React.FC<Props> = ({ children }) => {
   const handleUpdateProduct = async (id: string, product: UpdateProduct) => {
     const updatedProduct = await updateProduct(id, product);
     setProducts((prev) =>
-      prev.map((p) => (p.code === id ? updatedProduct : p))
+      [...prev.map((p) => (p._id === id ? updatedProduct : p))]
     );
+    const refreshedProducts = await getProducts();
+    setProducts(refreshedProducts);
   };
 
   const handleDeleteProduct = async (id: string) => {
