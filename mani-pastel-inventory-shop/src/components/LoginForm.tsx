@@ -3,20 +3,49 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, User } from 'lucide-react';
+import { Sparkles, User, Mail } from 'lucide-react';
+import { login } from '@/api/auth';
+import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginFormProps {
-  onLogin: (username: string) => void;
+  onLogin: (userData: { username: string, email: string }) => void;
 }
 
 export function LoginForm({ onLogin }: LoginFormProps) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim()) {
-      onLogin(username);
+    setIsLoading(true);
+    
+    try {
+      const userData = await login({ email, password });
+      
+      // Guardar token en localStorage
+      localStorage.setItem('token', userData.token);
+      
+      // Llamar a onLogin con los datos del usuario
+      onLogin({
+        username: userData.name,
+        email: userData.email
+      });
+      
+      // Navegar al dashboard después del login exitoso
+      navigate('/', { replace: true });
+      
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error de autenticación",
+        description: error instanceof Error ? error.message : "Credenciales incorrectas",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -37,15 +66,15 @@ export function LoginForm({ onLogin }: LoginFormProps) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-foreground">Usuario</Label>
+              <Label htmlFor="email" className="text-foreground">Email</Label>
               <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Ingresa tu usuario"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="Ingresa tu email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -65,8 +94,9 @@ export function LoginForm({ onLogin }: LoginFormProps) {
             <Button 
               type="submit" 
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={isLoading}
             >
-              Iniciar Sesión
+              {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
           </form>
         </CardContent>
