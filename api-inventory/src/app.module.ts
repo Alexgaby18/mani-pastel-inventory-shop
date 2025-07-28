@@ -6,6 +6,7 @@ import { ProductModule } from './product/product.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
 import { brandModule } from './brand/brand.module';
+import { InvoiceModule } from './invoice/invoice.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { brandModule } from './brand/brand.module';
     MongooseModule.forRoot('mongodb://localhost/inventory', {}),
     AuthModule,
     brandModule,
+    InvoiceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
