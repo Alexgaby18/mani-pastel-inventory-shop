@@ -139,38 +139,6 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
           </CardContent>
         </Card>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="border-accent/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Marcas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{brands.length}</div>
-            </CardContent>
-          </Card>
-          <Card className="border-accent/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Productos Total</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {brands.reduce((total, brand) => total + (brand.productCount || 0), 0)}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-accent/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Promedio por Marca</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {brands.length > 0 ? Math.round(brands.reduce((total, brand) => total + (brand.productCount || 0), 0) / brands.length) : 0}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Brands List */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredBrands.map((brand) => (

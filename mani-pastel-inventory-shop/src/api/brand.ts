@@ -1,8 +1,8 @@
-import { Createbrand, Updatebrand } from '../interfaces/branch.interface';
+import { CreateBrand, UpdateBrand } from '../interfaces/brand.interface';
 
 const API = "http://localhost:3000/brand";
 
-export const createbrand = async (brand: Createbrand) => {
+export const createBrand = async (brand: CreateBrand) => {
   const response = await fetch(`${API}/create`, {
     method: "POST",
     headers: {
@@ -13,7 +13,7 @@ export const createbrand = async (brand: Createbrand) => {
   return response.json();
 };
 
-export const updatebrand = async (id: string, brand: Updatebrand) => {
+export const updateBrand = async (id: string, brand: UpdateBrand) => {
   const response = await fetch(`${API}/${id}`, {
     method: "PUT",
     headers: {
@@ -24,17 +24,17 @@ export const updatebrand = async (id: string, brand: Updatebrand) => {
   return response.json();
 };
 
-export const getbrandes = async () => {
+export const getBrandes = async () => {
   const response = await fetch(API);
   return response.json();
 };
 
-export const getbrandById = async (id: string) => {
+export const getBrandById = async (id: string) => {
   const response = await fetch(`${API}/${id}`);
   return response.json();
 };
 
-export const deletebrand = async (id: string) => {
+export const deleteBrand = async (id: string) => {
   const response = await fetch(`${API}/${id}`, {
     method: "DELETE",
   });

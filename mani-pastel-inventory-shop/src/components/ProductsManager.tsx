@@ -30,18 +30,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useProduct } from '@/context/use.product';
+import { Product} from '@/interfaces/product.interface';
+import { useBrand } from '@/context/use.brand';
 
-interface Product {
-  _id: string;
-  code: string;
-  name: string;
-  stock: number;
-  price: number;
-  cost: number;
-  flete: number;
-  brand: string;
-  unit_measure: string;
-}
 
 interface ProductsManagerProps {
   onBack: () => void;
@@ -76,12 +67,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
 
   // Hook del contexto
   const { products, createProduct, updateProduct, deleteProduct } = useProduct();
-
-  const brands = [
-    { id: "1", nombre: "Beauty Pro" },
-    { id: "2", nombre: "Nail Art Express" },
-    { id: "3", nombre: "Glam Nails" }
-  ];
+  const { brands, loading: brandsLoading } = useBrand();
 
   const filteredProducts = products?.filter(
   (product: Product) =>
@@ -350,20 +336,28 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   <div className="space-y-2">
                     <Label htmlFor="marca">Marca</Label>
                     <Select 
-                      value={newProduct.marca_id} 
                       onValueChange={(value) => handleSelectChange('marca_id', value)}
+                      disabled={brandsLoading}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecciona una marca" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {brands.map((brand) => (
-                          <SelectItem key={brand.id} value={brand.id}>
-                            {brand.nombre}
+                      <SelectValue placeholder={
+                        brandsLoading ? "Cargando marcas..." : "Selecciona una marca"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {brandsLoading ? (
+                        <div className="p-2 text-center text-sm text-muted-foreground">
+                          Cargando marcas...
+                        </div>
+                      ) : (
+                        brands.map((brand) => (
+                          <SelectItem key={brand._id} value={brand._id}>
+                            {brand.name} {/* Asumiendo que tu interfaz Brand tiene 'name' */}
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="unidad">Unidad de Medida</Label>
@@ -482,16 +476,25 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 <Select 
                   value={editProduct.marca_id} 
                   onValueChange={(value) => handleEditSelectChange('marca_id', value)}
+                  disabled={brandsLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una marca" />
+                    <SelectValue placeholder={
+                      brandsLoading ? "Cargando marcas..." : "Selecciona una marca"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {brands.map((brand) => (
-                      <SelectItem key={brand.id} value={brand.id}>
-                        {brand.nombre}
-                      </SelectItem>
-                    ))}
+                    {brandsLoading ? (
+                      <div className="p-2 text-center text-sm text-muted-foreground">
+                        Cargando marcas...
+                      </div>
+                    ) : (
+                      brands.map((brand) => (
+                        <SelectItem key={brand._id} value={brand._id}>
+                          {brand.name} {/* Asumiendo que tu interfaz Brand tiene 'name' */}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -547,7 +550,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProducts.map((product: Product) => {
             const stockStatus = getStockStatus(product.stock);
-            const brandName = brands.find(b => b.id === product.brand)?.nombre || 'Sin marca';
+            const brandName = brands.find(b => b._id === product.brand)?.name || 'Sin marca';
             
             return (
               <Card key={product._id} className="border-primary/20 hover:shadow-lg transition-shadow">
