@@ -18,5 +18,5 @@ export class UpdatedProductDTO {
   cost: number;
   @IsOptional()
   unit_measure: string;
-  branch?: string;
+  brand?: string;
 }

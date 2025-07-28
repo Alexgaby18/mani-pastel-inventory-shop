@@ -5,7 +5,7 @@ import { AppService } from './app.service';
 import { ProductModule } from './product/product.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
-import { BranchModule } from './branch/branch.module';
+import { brandModule } from './brand/brand.module';
 
 @Module({
   imports: [
@@ -16,7 +16,7 @@ import { BranchModule } from './branch/branch.module';
     ProductModule,
     MongooseModule.forRoot('mongodb://localhost/inventory', {}),
     AuthModule,
-    BranchModule,
+    brandModule,
   ],
   controllers: [AppController],
   providers: [AppService],

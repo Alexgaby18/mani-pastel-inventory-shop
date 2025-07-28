@@ -9,5 +9,5 @@ export const productSchema = new Schema({
   flete: { type: Number, required: true },
   cost: { type: Number, required: true },
   unit_measure: { type: String, required: true },
-  branch: { type: String, required: false },
+  brand: { type: String, required: false },
 });

@@ -19,5 +19,5 @@ export class CreateProductDTO {
   @IsNotEmpty()
   cost: number;
   unit_measure: string;
-  branch?: string;
+  brand?: string;
 }

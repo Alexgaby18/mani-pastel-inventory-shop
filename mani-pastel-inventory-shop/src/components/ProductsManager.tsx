@@ -39,7 +39,7 @@ interface Product {
   price: number;
   cost: number;
   flete: number;
-  branch: string;
+  brand: string;
   unit_measure: string;
 }
 
@@ -151,7 +151,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
       precio: product.price,
       costo: product.cost,
       flete: product.flete,
-      marca_id: product.branch,
+      marca_id: product.brand,
       unidad_de_medida: product.unit_measure
     });
     setIsEditDialogOpen(true);
@@ -169,7 +169,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           price: newProduct.precio,
           cost: newProduct.costo,
           flete: newProduct.flete,
-          branch: newProduct.marca_id,
+          brand: newProduct.marca_id,
           unit_measure: newProduct.unidad_de_medida
         });
         setNewProduct({
@@ -201,7 +201,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           price: editProduct.precio,
           cost: editProduct.costo,
           flete: editProduct.flete,
-          branch: editProduct.marca_id,
+          brand: editProduct.marca_id,
           unit_measure: editProduct.unidad_de_medida
         });
         
@@ -547,7 +547,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProducts.map((product: Product) => {
             const stockStatus = getStockStatus(product.stock);
-            const brandName = brands.find(b => b.id === product.branch)?.nombre || 'Sin marca';
+            const brandName = brands.find(b => b.id === product.brand)?.nombre || 'Sin marca';
             
             return (
               <Card key={product._id} className="border-primary/20 hover:shadow-lg transition-shadow">

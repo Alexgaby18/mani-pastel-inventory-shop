@@ -1,5 +1,5 @@
 import { Document } from 'mongoose';
 
-export interface Branch extends Document {
+export interface brand extends Document {
   readonly name: string;
 }

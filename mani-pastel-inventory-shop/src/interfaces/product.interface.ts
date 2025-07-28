@@ -3,7 +3,7 @@ export interface Product {
     code: string;
     name: string;
     price: number;
-    branch?: string;
+    brand?: string;
     stock?: number;
     dateAdded?: Date;
     flete?: number;

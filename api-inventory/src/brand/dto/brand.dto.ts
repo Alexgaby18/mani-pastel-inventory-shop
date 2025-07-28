@@ -1,12 +1,12 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 
-export class CreateBranchDTO {
+export class CreatebrandDTO {
   @IsNotEmpty()
   @IsString()
   name: string;
 }
 
-export class UpdateBranchDTO {
+export class UpdatebrandDTO {
   @IsNotEmpty()
   @IsString()
   name: string;
