@@ -11,6 +11,7 @@ interface ProductContextType {
   createProduct: (product: CreateProduct) => Promise<void>;
   updateProduct: (id: string, product: UpdateProduct) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
+  getProducts: () => Promise<void>;
 }
 
 export const ProductContext = createContext<ProductContextType>({
@@ -23,6 +24,9 @@ export const ProductContext = createContext<ProductContextType>({
     },
     deleteProduct: async () => {
         throw new Error("deleteProduct() not implemented.");
+    },
+    getProducts: async () => {
+        throw new Error("getProducts() not implemented.");
     },
 });
 
@@ -68,6 +72,7 @@ export const ProductProvider: React.FC<Props> = ({ children }) => {
         createProduct: handleCreateProduct,
         updateProduct: handleUpdateProduct,
         deleteProduct: handleDeleteProduct,
+        getProducts: handleGetProducts,
       }}
     >
       {children}

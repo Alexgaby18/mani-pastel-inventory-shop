@@ -1,21 +1,28 @@
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  FileText, 
-  Plus, 
-  Search, 
-  Eye, 
+import { useState, useEffect, useContext } from "react";
+import { InvoiceContext } from "@/context/invoice.context";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  FileText,
+  Plus,
+  Search,
+  Eye,
   Download,
   Calendar,
   User,
   Phone,
-  DollarSign
-} from 'lucide-react';
+  DollarSign,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,160 +31,264 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-interface Invoice {
-  id: string;
-  nombre: string;
-  ci: string;
-  telefono: string;
-  total: number;
-  fecha: string;
-  productos: InvoiceDetail[];
-}
-
-interface InvoiceDetail {
-  factura_id: string;
-  producto_codigo: string;
-  cantidad: number;
-  precio_unitario: number;
-  sub_total: number;
-  producto_nombre?: string;
-}
+import { CreateInvoice, Invoice } from "@/interfaces/invoice.interface";
+import { Product } from "@/interfaces/product.interface";
+import { ProductContext } from "@/context/product.context";
 
 interface InvoicesManagerProps {
   onBack: () => void;
 }
 
 export function InvoicesManager({ onBack }: InvoicesManagerProps) {
-  const [invoices, setInvoices] = useState<Invoice[]>([
-    {
-      id: "INV001",
-      nombre: "María González",
-      ci: "12345678",
-      telefono: "555-0123",
-      total: 65.97,
-      fecha: "2025-01-12",
-      productos: [
-        {
-          factura_id: "INV001",
-          producto_codigo: "ESM001",
-          cantidad: 2,
-          precio_unitario: 15.99,
-          sub_total: 31.98,
-          producto_nombre: "Esmalte Rosa Claro"
-        },
-        {
-          factura_id: "INV001",
-          producto_codigo: "LIM002",
-          cantidad: 1,
-          precio_unitario: 12.99,
-          sub_total: 12.99,
-          producto_nombre: "Lima de Cristal Premium"
-        }
-      ]
-    },
-    {
-      id: "INV002",
-      nombre: "Ana Rodríguez",
-      ci: "87654321",
-      telefono: "555-0456",
-      total: 24.99,
-      fecha: "2025-01-12",
-      productos: [
-        {
-          factura_id: "INV002",
-          producto_codigo: "ACR003",
-          cantidad: 1,
-          precio_unitario: 24.99,
-          sub_total: 24.99,
-          producto_nombre: "Acrílico Transparente"
-        }
-      ]
-    }
-  ]);
+  // Contextos
+  const { invoices, createInvoice } = useContext(InvoiceContext);
+  const { products, getProducts } = useContext(ProductContext);
 
-  const [searchTerm, setSearchTerm] = useState('');
+  // Estados
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  
-  const [newInvoice, setNewInvoice] = useState<Partial<Invoice>>({
-    productos: []
+  const [newInvoice, setNewInvoice] = useState<CreateInvoice>({
+    invoiceNumber: "",
+    customerName: "",
+    idCard: "",
+    customerPhone: "",
+    totalAmount: 0,
+    items: [],
+  });
+  const [invoiceNumberError, setInvoiceNumberError] = useState("");
+  const [formErrors, setFormErrors] = useState({
+    customerName: "",
+    idCard: "",
+    items: "",
   });
 
-  const products = [
-    { codigo: "ESM001", nombre: "Esmalte Rosa Claro", precio: 15.99, stock: 5 },
-    { codigo: "LIM002", nombre: "Lima de Cristal Premium", precio: 12.99, stock: 0 },
-    { codigo: "ACR003", nombre: "Acrílico Transparente", precio: 24.99, stock: 2 }
-  ];
+  // Función para obtener el nombre del producto por ID
+  const getProductNameById = (productId: string) => {
+    const product = products.find((p) => p._id === productId);
+    return product ? product.name : "Producto no encontrado";
+  };
 
-  const filteredInvoices = invoices.filter(invoice =>
-    invoice.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.ci.includes(searchTerm) ||
-    invoice.id.toLowerCase().includes(searchTerm.toLowerCase())
+  // Procesar facturas
+  const processedInvoices = invoices.map((invoice) => ({
+    ...invoice,
+    dateIssued: invoice.dateIssued ? new Date(invoice.dateIssued) : new Date(),
+    // Mapear items para mostrar el nombre del producto
+    items: invoice.items.map((item) => ({
+      ...item,
+      productName: getProductNameById(item.itemName), // itemName contiene el ID
+    })),
+  }));
+
+  // Función para formatear fechas
+  const formatDate = (date: Date | string) => {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return dateObj.toLocaleDateString();
+  };
+
+  // Función para comparar fechas
+  const isSameDate = (date1: Date, date2: Date) => {
+    return date1.toDateString() === date2.toDateString();
+  };
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        await getProducts();
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Validar número de factura
+  const validateInvoiceNumber = (value: string) => {
+    if (!value.trim()) {
+      setInvoiceNumberError("El número de factura es requerido");
+      return false;
+    }
+
+    const exists = invoices.some(
+      (inv) => inv.invoiceNumber.toLowerCase() === value.toLowerCase()
+    );
+
+    if (exists) {
+      setInvoiceNumberError("Este número de factura ya existe");
+      return false;
+    }
+
+    setInvoiceNumberError("");
+    return true;
+  };
+
+  // Validar formulario completo
+  const isFormValid = () => {
+    return (
+      newInvoice.invoiceNumber.trim() &&
+      newInvoice.customerName.trim() &&
+      newInvoice.idCard.trim() &&
+      newInvoice.items.length > 0 &&
+      !invoiceNumberError &&
+      !formErrors.customerName &&
+      !formErrors.idCard
+    );
+  };
+
+  // Filtrar facturas
+  const filteredInvoices = processedInvoices.filter(
+    (invoice) =>
+      invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.idCard.includes(searchTerm) ||
+      invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddProduct = (productCode: string) => {
-    const product = products.find(p => p.codigo === productCode);
-    if (product && newInvoice.productos) {
-      const existingProduct = newInvoice.productos.find(p => p.producto_codigo === productCode);
-      
-      if (existingProduct) {
-        const updatedProducts = newInvoice.productos.map(p =>
-          p.producto_codigo === productCode
-            ? { ...p, cantidad: p.cantidad + 1, sub_total: (p.cantidad + 1) * p.precio_unitario }
-            : p
+  // Agregar producto a la factura
+  const handleAddProduct = (productId: string) => {
+    const product = products.find((p) => p._id === productId);
+    if (!product || (product.stock || 0) <= 0) return;
+
+    setNewInvoice((prev) => {
+      const existingItem = prev.items.find(
+        (item) => item.itemName === productId
+      );
+
+      // Calcular la cantidad que se intentaría agregar
+      const newQuantity = existingItem ? existingItem.quantity + 1 : 1;
+
+      // Verificar si hay suficiente stock
+      if (product.stock < newQuantity) {
+        alert(
+          `No hay suficiente stock de ${product.name}. Stock disponible: ${product.stock}`
         );
-        setNewInvoice({ ...newInvoice, productos: updatedProducts });
-      } else {
-        const newDetail: InvoiceDetail = {
-          factura_id: '',
-          producto_codigo: productCode,
-          cantidad: 1,
-          precio_unitario: product.precio,
-          sub_total: product.precio,
-          producto_nombre: product.nombre
-        };
-        setNewInvoice({ 
-          ...newInvoice, 
-          productos: [...newInvoice.productos, newDetail] 
-        });
+        return prev; // No hacer cambios si no hay stock suficiente
       }
-    }
-  };
 
-  const calculateTotal = () => {
-    return newInvoice.productos?.reduce((total, item) => total + item.sub_total, 0) || 0;
-  };
+      const updatedItems = existingItem
+        ? prev.items.map((item) =>
+            item.itemName === productId
+              ? {
+                  ...item,
+                  quantity: newQuantity,
+                  pricePerItem: product.price,
+                }
+              : item
+          )
+        : [
+            ...prev.items,
+            {
+              itemName: productId,
+              quantity: 1,
+              pricePerItem: product.price,
+            },
+          ];
 
-  const handleCreateInvoice = () => {
-    if (newInvoice.nombre && newInvoice.ci && newInvoice.productos && newInvoice.productos.length > 0) {
-      const invoiceId = newInvoice.id || `INV${String(invoices.length + 1).padStart(3, '0')}`;
-      const invoice: Invoice = {
-        id: invoiceId,
-        nombre: newInvoice.nombre,
-        ci: newInvoice.ci,
-        telefono: newInvoice.telefono || '',
-        total: calculateTotal(),
-        fecha: new Date().toISOString().split('T')[0],
-        productos: newInvoice.productos.map(p => ({ ...p, factura_id: invoiceId }))
+      const totalAmount = updatedItems.reduce(
+        (total, item) => total + item.quantity * item.pricePerItem,
+        0
+      );
+
+      return {
+        ...prev,
+        items: updatedItems,
+        totalAmount,
       };
-      
-      setInvoices([invoice, ...invoices]);
-      setNewInvoice({ productos: [] });
-      setIsAddDialogOpen(false);
+    });
+
+    if (formErrors.items) {
+      setFormErrors((prev) => ({ ...prev, items: "" }));
     }
   };
 
+  // Validar campo genérico
+  const validateField = (name: string, value: string) => {
+    if (!value.trim()) {
+      setFormErrors((prev) => ({ ...prev, [name]: "Este campo es requerido" }));
+      return false;
+    }
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    return true;
+  };
+
+  // Crear nueva factura
+  const handleCreateInvoice = async () => {
+    // Validar stock antes de proceder
+    const stockErrors = newInvoice.items.filter((item) => {
+      const product = products.find((p) => p._id === item.itemName);
+      return !product || (product.stock || 0) < item.quantity;
+    });
+
+    if (stockErrors.length > 0) {
+      alert(
+        `No hay suficiente stock para: ${stockErrors
+          .map((e) => getProductNameById(e.itemName))
+          .join(", ")}`
+      );
+      return;
+    }
+
+    // Resto de las validaciones...
+    const isInvoiceNumberValid = validateInvoiceNumber(
+      newInvoice.invoiceNumber
+    );
+    const isCustomerNameValid = validateField(
+      "customerName",
+      newInvoice.customerName
+    );
+    const isIdCardValid = validateField("idCard", newInvoice.idCard);
+    const hasItems = newInvoice.items.length > 0;
+
+    if (!hasItems) {
+      setFormErrors((prev) => ({
+        ...prev,
+        items: "Debe agregar al menos un producto",
+      }));
+    }
+
+    if (
+      !isInvoiceNumberValid ||
+      !isCustomerNameValid ||
+      !isIdCardValid ||
+      !hasItems
+    ) {
+      return;
+    }
+
+    try {
+      await createInvoice(newInvoice);
+      setNewInvoice({
+        invoiceNumber: "",
+        customerName: "",
+        idCard: "",
+        customerPhone: "",
+        totalAmount: 0,
+        items: [],
+      });
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      alert("Error al crear la factura");
+    }
+  };
+
+  // Ver detalle de factura
   const viewInvoice = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
+    setSelectedInvoice({
+      ...invoice,
+      dateIssued:
+        invoice.dateIssued instanceof Date
+          ? invoice.dateIssued
+          : new Date(invoice.dateIssued),
+      items: invoice.items.map((item) => ({
+        ...item,
+        itemName: getProductNameById(item.itemName), // Mostrar nombre en lugar de ID
+      })),
+    });
     setIsViewDialogOpen(true);
   };
 
@@ -187,7 +298,11 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
       <div className="bg-card border-b border-border shadow-sm">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
-            <Button variant="ghost" onClick={onBack} className="text-muted-foreground hover:text-foreground">
+            <Button
+              variant="ghost"
+              onClick={onBack}
+              className="text-muted-foreground hover:text-foreground"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
@@ -195,8 +310,12 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
               <FileText className="h-6 w-6 text-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-accent-foreground">Gestión de Facturas</h1>
-              <p className="text-sm text-muted-foreground">Administra las ventas y facturas</p>
+              <h1 className="text-xl font-bold text-accent-foreground">
+                Gestión de Facturas
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Administra las ventas y facturas
+              </p>
             </div>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -214,113 +333,221 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6">
-                {/* Invoice and Customer Data */}
+                {/* Datos de la factura y cliente */}
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="invoiceNumber">Número de Factura</Label>
+                    <Label htmlFor="invoiceNumber">Número de Factura*</Label>
                     <Input
                       id="invoiceNumber"
-                      value={newInvoice.id || ''}
-                      onChange={(e) => setNewInvoice({...newInvoice, id: e.target.value})}
-                      placeholder="INV001"
+                      value={newInvoice.invoiceNumber}
+                      onChange={(e) => {
+                        setNewInvoice({
+                          ...newInvoice,
+                          invoiceNumber: e.target.value,
+                        });
+                        validateInvoiceNumber(e.target.value);
+                      }}
+                      placeholder="FAC-001"
+                      className={invoiceNumberError ? "border-destructive" : ""}
                     />
+                    {invoiceNumberError && (
+                      <p className="text-sm text-destructive">
+                        {invoiceNumberError}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customerName">Nombre del Cliente</Label>
+                    <Label htmlFor="customerName">Nombre del Cliente*</Label>
                     <Input
                       id="customerName"
-                      value={newInvoice.nombre || ''}
-                      onChange={(e) => setNewInvoice({...newInvoice, nombre: e.target.value})}
-                      placeholder="María González"
+                      value={newInvoice.customerName}
+                      onChange={(e) => {
+                        setNewInvoice({
+                          ...newInvoice,
+                          customerName: e.target.value,
+                        });
+                        validateField("customerName", e.target.value);
+                      }}
+                      placeholder="Nombre completo"
+                      className={
+                        formErrors.customerName ? "border-destructive" : ""
+                      }
                     />
+                    {formErrors.customerName && (
+                      <p className="text-sm text-destructive">
+                        {formErrors.customerName}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customerCI">CI/RUC</Label>
+                    <Label htmlFor="idCard">Cédula/RUC*</Label>
                     <Input
-                      id="customerCI"
-                      value={newInvoice.ci || ''}
-                      onChange={(e) => setNewInvoice({...newInvoice, ci: e.target.value})}
-                      placeholder="12345678"
+                      id="idCard"
+                      value={newInvoice.idCard}
+                      onChange={(e) => {
+                        setNewInvoice({
+                          ...newInvoice,
+                          idCard: e.target.value,
+                        });
+                        validateField("idCard", e.target.value);
+                      }}
+                      placeholder="1234567890"
+                      className={formErrors.idCard ? "border-destructive" : ""}
                     />
+                    {formErrors.idCard && (
+                      <p className="text-sm text-destructive">
+                        {formErrors.idCard}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="customerPhone">Teléfono</Label>
                     <Input
                       id="customerPhone"
-                      value={newInvoice.telefono || ''}
-                      onChange={(e) => setNewInvoice({...newInvoice, telefono: e.target.value})}
-                      placeholder="555-0123"
+                      value={newInvoice.customerPhone}
+                      onChange={(e) =>
+                        setNewInvoice({
+                          ...newInvoice,
+                          customerPhone: e.target.value,
+                        })
+                      }
+                      placeholder="0991234567"
                     />
                   </div>
                 </div>
 
-                {/* Add Products */}
+                {/* Lista de productos disponibles */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Agregar Productos</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {products.map((product) => (
-                      <Card key={product.codigo} 
+                  <h3 className="text-lg font-semibold">
+                    Productos Disponibles
+                  </h3>
+                  {isLoadingProducts ? (
+                    <div>Cargando productos...</div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {products.map((product) => {
+                        const itemInInvoice = newInvoice.items.find(
+                          (item) => item.itemName === product._id
+                        );
+                        const currentQuantity = itemInInvoice
+                          ? itemInInvoice.quantity
+                          : 0;
+                        const hasStock = (product.stock || 0) > currentQuantity;
+
+                        return (
+                          <Card
+                            key={product._id}
                             className={`cursor-pointer hover:shadow-md transition-shadow ${
-                              product.stock === 0 ? 'border-destructive bg-destructive/10' : 'border-success/30'
+                              !hasStock
+                                ? "border-destructive bg-destructive/10"
+                                : "border-success/30"
                             }`}
-                            onClick={() => product.stock > 0 && handleAddProduct(product.codigo)}>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">{product.nombre}</CardTitle>
-                          <CardDescription>{product.codigo}</CardDescription>
-                          {product.stock === 0 && (
-                            <Badge variant="destructive" className="text-xs">
-                              Sin Stock
-                            </Badge>
-                          )}
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <span className="text-lg font-bold">${product.precio}</span>
-                              <p className={`text-xs ${product.stock === 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                Stock: {product.stock}
-                              </p>
-                            </div>
-                            <Button size="sm" variant="outline" disabled={product.stock === 0}>
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                            onClick={() =>
+                              hasStock && handleAddProduct(product._id)
+                            }
+                          >
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-sm">
+                                {product.name}
+                              </CardTitle>
+                              <CardDescription>{product.code}</CardDescription>
+                              {!hasStock && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs"
+                                >
+                                  Sin Stock suficiente
+                                </Badge>
+                              )}
+                            </CardHeader>
+                            <CardContent>
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <span className="text-lg font-bold">
+                                    ${product.price.toFixed(2)}
+                                  </span>
+                                  <p
+                                    className={`text-xs ${
+                                      !hasStock
+                                        ? "text-destructive"
+                                        : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    Stock: {product.stock || 0} | En factura:{" "}
+                                    {currentQuantity}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!hasStock}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
-                {/* Selected Products */}
-                {newInvoice.productos && newInvoice.productos.length > 0 && (
+                {/* Productos seleccionados */}
+                {newInvoice.items.length > 0 ? (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Productos Seleccionados</h3>
+                    <h3 className="text-lg font-semibold">
+                      Productos Seleccionados
+                    </h3>
                     <div className="space-y-2">
-                      {newInvoice.productos.map((item, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                      {newInvoice.items.map((item, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                        >
                           <div>
-                            <span className="font-medium">{item.producto_nombre}</span>
-                            <span className="text-sm text-muted-foreground ml-2">({item.producto_codigo})</span>
+                            {/* Mostramos el nombre del producto usando el ID almacenado en itemName */}
+                            <span className="font-medium">
+                              {getProductNameById(item.itemName)}
+                            </span>
                           </div>
                           <div className="flex items-center space-x-4">
-                            <span>Cantidad: {item.cantidad}</span>
-                            <span>Precio: ${item.precio_unitario}</span>
-                            <span className="font-bold">Subtotal: ${item.sub_total.toFixed(2)}</span>
+                            <span>Cantidad: {item.quantity}</span>
+                            <span>Precio: ${item.pricePerItem.toFixed(2)}</span>
+                            <span className="font-bold">
+                              Subtotal: $
+                              {(item.quantity * item.pricePerItem).toFixed(2)}
+                            </span>
                           </div>
                         </div>
                       ))}
                     </div>
                     <div className="text-right">
-                      <span className="text-xl font-bold">Total: ${calculateTotal().toFixed(2)}</span>
+                      <span className="text-xl font-bold">
+                        Total: ${newInvoice.totalAmount.toFixed(2)}
+                      </span>
                     </div>
                   </div>
+                ) : (
+                  formErrors.items && (
+                    <div className="text-center py-4 text-destructive">
+                      {formErrors.items}
+                    </div>
+                  )
                 )}
 
                 <div className="flex justify-end space-x-2 pt-4">
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAddDialogOpen(false)}
+                  >
                     Cancelar
                   </Button>
-                  <Button onClick={handleCreateInvoice} className="bg-success hover:bg-success/90">
+                  <Button
+                    onClick={handleCreateInvoice}
+                    className="bg-success hover:bg-success/90"
+                    disabled={!isFormValid()}
+                  >
                     Crear Factura
                   </Button>
                 </div>
@@ -346,25 +573,36 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-success/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Facturas Hoy</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Facturas Hoy
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {invoices.filter(inv => inv.fecha === new Date().toISOString().split('T')[0]).length}
+                {
+                  processedInvoices.filter((inv) =>
+                    isSameDate(inv.dateIssued, new Date())
+                  ).length
+                }
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="border-success/30">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Ingresos</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Total Ingresos
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                ${invoices.reduce((total, inv) => total + inv.total, 0).toFixed(2)}
+                $
+                {processedInvoices
+                  .reduce((total, inv) => total + inv.totalAmount, 0)
+                  .toFixed(2)}
               </div>
             </CardContent>
           </Card>
@@ -373,7 +611,10 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
         {/* Invoices List */}
         <div className="space-y-4">
           {filteredInvoices.map((invoice) => (
-            <Card key={invoice.id} className="border-success/30 hover:shadow-lg transition-shadow">
+            <Card
+              key={invoice._id}
+              className="border-success/30 hover:shadow-lg transition-shadow"
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -381,19 +622,21 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                       <FileText className="h-6 w-6 text-accent-foreground" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground">{invoice.id}</h3>
+                      <h3 className="font-semibold text-foreground">
+                        {invoice.invoiceNumber}
+                      </h3>
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         <div className="flex items-center">
                           <User className="h-4 w-4 mr-1" />
-                          {invoice.nombre}
+                          {invoice.customerName}
                         </div>
                         <div className="flex items-center">
                           <Phone className="h-4 w-4 mr-1" />
-                          {invoice.telefono}
+                          {invoice.customerPhone || "N/A"}
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
-                          {invoice.fecha}
+                          {formatDate(invoice.dateIssued)}
                         </div>
                       </div>
                     </div>
@@ -402,14 +645,21 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                     <div className="text-right">
                       <div className="flex items-center text-lg font-bold text-foreground">
                         <DollarSign className="h-5 w-5 mr-1" />
-                        {invoice.total.toFixed(2)}
+                        {invoice.totalAmount.toFixed(2)}
                       </div>
-                      <Badge variant="secondary" className="bg-success/20 text-accent-foreground">
-                        {invoice.productos.length} productos
+                      <Badge
+                        variant="secondary"
+                        className="bg-success/20 text-accent-foreground"
+                      >
+                        {invoice.items.length} productos
                       </Badge>
                     </div>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => viewInvoice(invoice)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => viewInvoice(invoice)}
+                      >
                         <Eye className="h-4 w-4 mr-1" />
                         Ver
                       </Button>
@@ -429,11 +679,18 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
           <Card className="text-center py-8">
             <CardContent>
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No se encontraron facturas</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                No se encontraron facturas
+              </h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm ? 'Intenta con otros términos de búsqueda.' : 'Comienza creando tu primera factura.'}
+                {searchTerm
+                  ? "Intenta con otros términos de búsqueda."
+                  : "Comienza creando tu primera factura."}
               </p>
-              <Button onClick={() => setIsAddDialogOpen(true)} className="bg-success hover:bg-success/90">
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
+                className="bg-success hover:bg-success/90"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Factura
               </Button>
@@ -446,52 +703,58 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Factura {selectedInvoice?.id}</DialogTitle>
-            <DialogDescription>
-              Detalles de la factura
-            </DialogDescription>
+            <DialogTitle>Factura {selectedInvoice?.invoiceNumber}</DialogTitle>
+            <DialogDescription>Detalles de la factura</DialogDescription>
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="font-semibold">Cliente:</Label>
-                  <p>{selectedInvoice.nombre}</p>
+                  <p>{selectedInvoice.customerName}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">CI/RUC:</Label>
-                  <p>{selectedInvoice.ci}</p>
+                  <p>{selectedInvoice.idCard}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Teléfono:</Label>
-                  <p>{selectedInvoice.telefono}</p>
+                  <p>{selectedInvoice.customerPhone}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Fecha:</Label>
-                  <p>{selectedInvoice.fecha}</p>
+                  <p>{formatDate(selectedInvoice.dateIssued)}</p>
                 </div>
               </div>
-              
+
               <div>
                 <Label className="font-semibold">Productos:</Label>
                 <div className="space-y-2 mt-2">
-                  {selectedInvoice.productos.map((item, index) => (
-                    <div key={index} className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                  {selectedInvoice.items.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center p-3 bg-muted/30 rounded-lg"
+                    >
                       <div>
-                        <span className="font-medium">{item.producto_nombre}</span>
-                        <span className="text-sm text-muted-foreground ml-2">({item.producto_codigo})</span>
+                        <span className="font-medium">{item.itemName}</span>
                       </div>
                       <div className="text-right">
-                        <div>{item.cantidad} x ${item.precio_unitario}</div>
-                        <div className="font-bold">${item.sub_total.toFixed(2)}</div>
+                        <div>
+                          {item.quantity} x ${item.pricePerItem.toFixed(2)}
+                        </div>
+                        <div className="font-bold">
+                          ${(item.quantity * item.pricePerItem).toFixed(2)}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-              
+
               <div className="text-right border-t pt-4">
-                <span className="text-xl font-bold">Total: ${selectedInvoice.total.toFixed(2)}</span>
+                <span className="text-xl font-bold">
+                  Total: ${selectedInvoice.totalAmount.toFixed(2)}
+                </span>
               </div>
             </div>
           )}

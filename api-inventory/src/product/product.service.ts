@@ -44,4 +44,26 @@ export class ProductService {
     );
     return updatedProduct;
   }
+  async decrementStock(productId: string, quantity: number): Promise<boolean> {
+    const result = await this.productModel.updateOne(
+      {
+        _id: productId,
+        stock: { $gte: quantity }, // Solo actualiza si hay suficiente stock
+      },
+      {
+        $inc: { stock: -quantity }, // Disminuye el stock
+      },
+    );
+
+    if (result.matchedCount === 0) {
+      // No se encontró el producto o no hay suficiente stock
+      const product = await this.productModel.findById(productId);
+      if (!product) {
+        throw new Error('Producto no encontrado');
+      }
+      throw new Error('Stock insuficiente');
+    }
+
+    return true;
+  }
 }

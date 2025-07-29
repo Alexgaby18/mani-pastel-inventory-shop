@@ -3,11 +3,14 @@ import App from './App.tsx'
 import './index.css'
 import { ProductProvider } from './context/product.context' // Ajusta la ruta si es necesario
 import { BrandProvider } from './context/brand.context.tsx';
+import { InvoiceProvider } from './context/invoice.context.tsx'; // Ajusta la ruta si es necesario
 
 createRoot(document.getElementById("root")!).render(
-  <BrandProvider>
-  <ProductProvider>
-    <App />
-  </ProductProvider>
-  </BrandProvider>
+  <InvoiceProvider>
+    <ProductProvider>
+      <BrandProvider>
+        <App />
+      </BrandProvider>
+    </ProductProvider>
+  </InvoiceProvider>
 );

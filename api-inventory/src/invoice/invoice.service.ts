@@ -5,11 +5,13 @@ import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Invoice } from './interfaces/invoice.interfaces';
 import { CreateInvoiceDTO, UpdateInvoiceDTO } from './dto/invoice.dto';
+import { ProductService } from '../product/product.service';
 
 @Injectable()
 export class InvoiceService {
   constructor(
     @InjectModel('Invoice') private readonly invoiceModel: Model<Invoice>,
+    private readonly productService: ProductService,
   ) {}
 
   async getAllInvoices(): Promise<Invoice[]> {
@@ -22,18 +24,29 @@ export class InvoiceService {
   }
   private calculateTotalAmount(items: any[]): number {
     return items.reduce(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       (total, item) => total + item.pricePerItem * item.quantity,
       0,
     );
   }
 
   async createInvoice(createInvoiceDto: CreateInvoiceDTO): Promise<Invoice> {
-    const totalAmount = this.calculateTotalAmount(createInvoiceDto.items);
+    // Verificar y disminuir stock usando los IDs que ahora están en itemName
+    for (const item of createInvoiceDto.items) {
+      await this.productService.decrementStock(item.itemName, item.quantity);
+    }
+
+    // Calcular el total
+    const totalAmount = createInvoiceDto.items.reduce(
+      (total, item) => total + item.pricePerItem * item.quantity,
+      0,
+    );
+
+    // Crear la factura (itemName ahora contiene el ID)
     const newInvoice = new this.invoiceModel({
       ...createInvoiceDto,
       totalAmount,
     });
+
     return await newInvoice.save();
   }
 
@@ -69,5 +82,11 @@ export class InvoiceService {
       (total, item) => total + item.pricePerItem * item.quantity,
       0,
     );
+  }
+  async decrementProductStock(
+    productId: string,
+    quantity: number,
+  ): Promise<boolean> {
+    return this.productService.decrementStock(productId, quantity);
   }
 }

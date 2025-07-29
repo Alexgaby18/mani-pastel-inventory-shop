@@ -132,15 +132,19 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
       </div>
 
       {/* Search */}
-      <Card className="m-6">
-        <CardContent className="p-4 relative">
-          <Search className="absolute left-3 top-3 h-4 w-4" />
-          <Input
-            placeholder="Buscar marcas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      <Card className="mb-6 border-primary/20">
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar marca..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
