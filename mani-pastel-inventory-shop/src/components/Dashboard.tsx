@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useContext, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,45 +16,151 @@ import {
 import { ProductsManager } from './ProductsManager';
 import { BrandsManager } from './BrandsManager';
 import { InvoicesManager } from './InvoicesManager';
+import { ProductContext } from '@/context/product.context';
+import { InvoiceContext } from '@/context/invoice.context';
+import { BrandContext } from '@/context/brand.context';
 
 interface DashboardProps {
-  username: string;
+  email: string; 
   onLogout: () => void;
 }
 
-export function Dashboard({ username, onLogout }: DashboardProps) {
+export function Dashboard({ email, onLogout }: DashboardProps) {
   const [activeSection, setActiveSection] = useState<'dashboard' | 'products' | 'brands' | 'invoices'>('dashboard');
+  
+  // Usar los contextos para obtener datos reales
+  const { products } = useContext(ProductContext);
+  const { invoices } = useContext(InvoiceContext);
+  const { brands } = useContext(BrandContext);
 
-  const stats = [
-    {
-      title: "Total Productos",
-      value: "156",
-      icon: Package,
-      description: "En inventario",
-      color: "text-primary"
-    },
-    {
-      title: "Stock Bajo",
-      value: "8",
-      icon: AlertTriangle,
-      description: "Requieren reposición",
-      color: "text-warning"
-    },
-    {
-      title: "Facturas Hoy",
-      value: "12",
-      icon: FileText,
-      description: "Ventas del día",
-      color: "text-success"
-    },
-    {
-      title: "Ingresos",
-      value: "$2,450",
-      icon: TrendingUp,
-      description: "Total del día",
-      color: "text-primary"
-    }
-  ];
+  // Función helper para calcular tiempo transcurrido
+  const getTimeAgo = (date: Date) => {
+    const now = new Date();
+    const targetDate = new Date(date);
+    const diffInMinutes = Math.floor((now.getTime() - targetDate.getTime()) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return "Ahora mismo";
+    if (diffInMinutes < 60) return `Hace ${diffInMinutes} min`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `Hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `Hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+  };
+
+  // Calcular estadísticas dinámicamente
+  const stats = useMemo(() => {
+    const totalProducts = products.length;
+    
+    // Productos con stock bajo (menor a 10 unidades o sin stock definido)
+    const lowStockProducts = products.filter(product => 
+      !product.stock || product.stock <= 5
+    ).length;
+    
+    // Facturas de hoy
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const todayInvoices = invoices.filter(invoice => {
+      const invoiceDate = new Date(invoice.dateIssued);
+      invoiceDate.setHours(0, 0, 0, 0);
+      return invoiceDate.getTime() === today.getTime();
+    });
+    
+    // Ingresos del día
+    const todayRevenue = todayInvoices.reduce((total, invoice) => {
+      return total + invoice.totalAmount;
+    }, 0);
+
+    return [
+      {
+        title: "Total Productos",
+        value: totalProducts.toString(),
+        icon: Package,
+        description: "En inventario",
+        color: "text-primary"
+      },
+      {
+        title: "Stock Bajo",
+        value: lowStockProducts.toString(),
+        icon: AlertTriangle,
+        description: "Requieren reposición",
+        color: "text-warning"
+      },
+      {
+        title: "Facturas Hoy",
+        value: todayInvoices.length.toString(),
+        icon: FileText,
+        description: "Ventas del día",
+        color: "text-success"
+      },
+      {
+        title: "Ingresos",
+        value: `$${todayRevenue.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+        icon: TrendingUp,
+        description: "Total del día",
+        color: "text-primary"
+      }
+    ];
+  }, [products, invoices]);
+
+  // Actividad reciente basada en datos reales
+  const recentActivity = useMemo(() => {
+    const activities = [];
+    
+    // Últimos productos agregados (usando dateAdded si existe)
+    const recentProducts = [...products]
+      .filter(product => product.dateAdded)
+      .sort((a, b) => new Date(b.dateAdded!).getTime() - new Date(a.dateAdded!).getTime())
+      .slice(0, 2);
+    
+    recentProducts.forEach(product => {
+      const timeAgo = getTimeAgo(product.dateAdded!);
+      activities.push({
+        action: "Producto agregado",
+        item: product.name,
+        time: timeAgo,
+        date: new Date(product.dateAdded!)
+      });
+    });
+    
+    // Últimas facturas
+    const recentInvoices = [...invoices]
+      .sort((a, b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime())
+      .slice(0, 2);
+    
+    recentInvoices.forEach(invoice => {
+      const timeAgo = getTimeAgo(invoice.dateIssued);
+      activities.push({
+        action: "Factura creada",
+        item: `Venta #${invoice.invoiceNumber}`,
+        time: timeAgo,
+        date: new Date(invoice.dateIssued)
+      });
+    });
+    
+    // Últimas marcas agregadas
+    const recentBrands = [...brands]
+      .filter(brand => brand.dateAdded)
+      .sort((a, b) => new Date(b.dateAdded!).getTime() - new Date(a.dateAdded!).getTime())
+      .slice(0, 1);
+    
+    recentBrands.forEach(brand => {
+      const timeAgo = getTimeAgo(brand.dateAdded!);
+      activities.push({
+        action: "Marca agregada",
+        item: brand.name,
+        time: timeAgo,
+        date: new Date(brand.dateAdded!)
+      });
+    });
+    
+    // Ordenar todas las actividades por fecha más reciente
+    return activities
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 3);
+  }, [products, invoices, brands, getTimeAgo]);
 
   if (activeSection === 'products') {
     return <ProductsManager onBack={() => setActiveSection('dashboard')} />;
@@ -79,7 +185,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">Liey Nails</h1>
-              <p className="text-sm text-muted-foreground">Bienvenida, {username}</p>
+              <p className="text-sm text-muted-foreground">Bienvenida {email}</p>
             </div>
           </div>
           <Button 
@@ -136,7 +242,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
             <CardContent>
               <div className="flex items-center justify-between">
                 <Badge variant="secondary" className="bg-primary/10 text-accent-foreground">
-                  156 productos
+                  {products.length} productos
                 </Badge>
                 <Button variant="ghost" size="sm">
                   <Plus className="h-4 w-4 mr-1" />
@@ -166,7 +272,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
             <CardContent>
               <div className="flex items-center justify-between">
                 <Badge variant="secondary" className="bg-accent/20 text-accent-foreground">
-                  24 marcas
+                  {brands.length} marcas
                 </Badge>
                 <Button variant="ghost" size="sm">
                   <Plus className="h-4 w-4 mr-1" />
@@ -196,7 +302,7 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
             <CardContent>
               <div className="flex items-center justify-between">
                 <Badge variant="secondary" className="bg-success/20 text-accent-foreground">
-                  12 hoy
+                  {stats[2].value} hoy
                 </Badge>
                 <Button variant="ghost" size="sm">
                   <Plus className="h-4 w-4 mr-1" />
@@ -211,23 +317,25 @@ export function Dashboard({ username, onLogout }: DashboardProps) {
         <Card className="border-primary/20">
           <CardHeader>
             <CardTitle className="text-foreground">Actividad Reciente</CardTitle>
-            <CardDescription>Últimos movimientos en el inventario</CardDescription>
+            <CardDescription>Últimos movimientos en el inventario y ventas</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {[
-                { action: "Stock actualizado", item: "Esmalte Rosa Claro", time: "Hace 10 min" },
-                { action: "Producto agregado", item: "Lima de Cristal Premium", time: "Hace 1 hora" },
-                { action: "Factura creada", item: "Venta #001234", time: "Hace 2 horas" },
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">{activity.action}</p>
-                    <p className="text-sm text-muted-foreground">{activity.item}</p>
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div>
+                      <p className="font-medium text-foreground">{activity.action}</p>
+                      <p className="text-sm text-muted-foreground">{activity.item}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{activity.time}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{activity.time}</span>
+                ))
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground">No hay actividad reciente</p>
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
