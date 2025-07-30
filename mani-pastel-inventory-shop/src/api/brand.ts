@@ -1,6 +1,6 @@
 import { CreateBrand, UpdateBrand } from '../interfaces/brand.interface';
 
-const API = "http://localhost:3000/brand";
+const API = "https://mani-pastel-inventory-shop-backend.onrender.com/brand";
 
 export const createBrand = async (brand: CreateBrand) => {
   const response = await fetch(`${API}/create`, {
