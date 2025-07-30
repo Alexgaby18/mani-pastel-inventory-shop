@@ -2,7 +2,7 @@ import { CreateProduct
 , UpdateProduct
  } from "@/interfaces/product.interface";
 
- const API = "http://localhost:3000/product";
+ const API = "https://mani-pastel-inventory-shop-backend.onrender.com/product";
 
  export const createProduct = async (product: CreateProduct) => {
    const response = await fetch(`${API}/create`, {

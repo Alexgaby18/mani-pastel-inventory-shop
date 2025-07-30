@@ -1,6 +1,6 @@
 import { CreateInvoice, UpdateInvoice } from "@/interfaces/invoice.interface";
 
-const API = "http://localhost:3000/invoice";
+const API = "https://mani-pastel-inventory-shop-backend.onrender.com/invoice";
 
 export const createInvoice = async (invoice: CreateInvoice) => {
   const response = await fetch(`${API}/create`, {

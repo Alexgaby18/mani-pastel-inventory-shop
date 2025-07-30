@@ -1,6 +1,6 @@
 import { LoginAuth } from "@/interfaces/auth.interface";
 
-const API = "http://localhost:3000/auth";
+const API = "https://mani-pastel-inventory-shop-backend.onrender.com/auth";
 
 export const login = async (auth: LoginAuth) => {
   try {
