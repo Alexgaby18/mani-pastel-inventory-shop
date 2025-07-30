@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { InvoiceContext } from "@/context/invoice.context";
 import {
   Card,
@@ -34,10 +34,85 @@ import {
 import { CreateInvoice, Invoice } from "@/interfaces/invoice.interface";
 import { Product } from "@/interfaces/product.interface";
 import { ProductContext } from "@/context/product.context";
+import { usePDF } from "react-to-pdf";
 
 interface InvoicesManagerProps {
   onBack: () => void;
 }
+
+// Componente para mostrar el PDF
+const InvoicePDF = ({
+  invoice,
+  pdfRef,
+}: {
+  invoice: Invoice;
+  pdfRef: React.RefObject<HTMLDivElement>;
+}) => {
+  const formatDate = (date: Date | string) => {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    return dateObj.toLocaleDateString();
+  };
+
+  return (
+    <div
+      ref={pdfRef}
+      className="p-6"
+      style={{ width: "210mm", height: "297mm" }}
+    >
+      {/* resto del contenido igual */}
+      <h1 className="text-2xl font-bold mb-4">
+        Factura {invoice.invoiceNumber}
+      </h1>
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div>
+          <p>
+            <strong>Cliente:</strong> {invoice.customerName}
+          </p>
+          <p>
+            <strong>CI/RIF:</strong> {invoice.idCard}
+          </p>
+        </div>
+        <div>
+          <p>
+            <strong>Fecha:</strong> {formatDate(invoice.dateIssued)}
+          </p>
+          <p>
+            <strong>Teléfono:</strong> {invoice.customerPhone || "N/A"}
+          </p>
+        </div>
+      </div>
+
+      <table className="w-full mb-6">
+        <thead>
+          <tr className="border-b">
+            <th className="text-left py-2">Producto</th>
+            <th className="text-right py-2">Cantidad</th>
+            <th className="text-right py-2">Precio Unitario</th>
+            <th className="text-right py-2">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoice.items.map((item, index) => (
+            <tr key={index} className="border-b">
+              <td className="py-2">{item.itemName}</td>
+              <td className="text-right py-2">{item.quantity}</td>
+              <td className="text-right py-2">
+                ${item.pricePerItem.toFixed(2)}
+              </td>
+              <td className="text-right py-2">
+                ${(item.quantity * item.pricePerItem).toFixed(2)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="text-right text-xl font-bold">
+        Total: ${invoice.totalAmount.toFixed(2)}
+      </div>
+    </div>
+  );
+};
 
 export function InvoicesManager({ onBack }: InvoicesManagerProps) {
   // Contextos
@@ -64,6 +139,17 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
     idCard: "",
     items: "",
   });
+  const [pdfInvoice, setPdfInvoice] = useState<Invoice | null>(null);
+
+  // Usamos useRef para el elemento que contendrá el PDF
+
+  const { toPDF, targetRef } = usePDF({
+    filename: "factura.pdf",
+    page: {
+      margin: 20, // Margen en mm (o usa un objeto: { top: 20, right: 20, bottom: 20, left: 20 })
+      format: "A4",
+    },
+  });
 
   // Función para obtener el nombre del producto por ID
   const getProductNameById = (productId: string) => {
@@ -75,10 +161,9 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
   const processedInvoices = invoices.map((invoice) => ({
     ...invoice,
     dateIssued: invoice.dateIssued ? new Date(invoice.dateIssued) : new Date(),
-    // Mapear items para mostrar el nombre del producto
     items: invoice.items.map((item) => ({
       ...item,
-      productName: getProductNameById(item.itemName), // itemName contiene el ID
+      productName: getProductNameById(item.itemName),
     })),
   }));
 
@@ -158,15 +243,13 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
         (item) => item.itemName === productId
       );
 
-      // Calcular la cantidad que se intentaría agregar
       const newQuantity = existingItem ? existingItem.quantity + 1 : 1;
 
-      // Verificar si hay suficiente stock
       if (product.stock < newQuantity) {
         alert(
           `No hay suficiente stock de ${product.name}. Stock disponible: ${product.stock}`
         );
-        return prev; // No hacer cambios si no hay stock suficiente
+        return prev;
       }
 
       const updatedItems = existingItem
@@ -217,22 +300,6 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
 
   // Crear nueva factura
   const handleCreateInvoice = async () => {
-    // Validar stock antes de proceder
-    const stockErrors = newInvoice.items.filter((item) => {
-      const product = products.find((p) => p._id === item.itemName);
-      return !product || (product.stock || 0) < item.quantity;
-    });
-
-    if (stockErrors.length > 0) {
-      alert(
-        `No hay suficiente stock para: ${stockErrors
-          .map((e) => getProductNameById(e.itemName))
-          .join(", ")}`
-      );
-      return;
-    }
-
-    // Resto de las validaciones...
     const isInvoiceNumberValid = validateInvoiceNumber(
       newInvoice.invoiceNumber
     );
@@ -286,11 +353,30 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
           : new Date(invoice.dateIssued),
       items: invoice.items.map((item) => ({
         ...item,
-        itemName: getProductNameById(item.itemName), // Mostrar nombre en lugar de ID
+        itemName: getProductNameById(item.itemName),
       })),
     });
     setIsViewDialogOpen(true);
   };
+
+  // Descargar PDF
+  const handleDownloadPDF = (invoice: Invoice) => {
+  // Procesar la factura para convertir IDs a nombres de productos
+  const processedInvoice = {
+    ...invoice,
+    dateIssued: invoice.dateIssued instanceof Date ? invoice.dateIssued : new Date(invoice.dateIssued),
+    items: invoice.items.map((item) => ({
+      ...item,
+      itemName: getProductNameById(item.itemName), // ← ESTO ES CLAVE
+    })),
+  };
+  
+  setPdfInvoice(processedInvoice);
+  
+  setTimeout(() => {
+    toPDF();
+  }, 300);
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-primary-glow/10">
@@ -380,7 +466,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="idCard">Cédula/RUC*</Label>
+                    <Label htmlFor="idCard">Cédula/RIF*</Label>
                     <Input
                       id="idCard"
                       value={newInvoice.idCard}
@@ -506,7 +592,6 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                           className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
                         >
                           <div>
-                            {/* Mostramos el nombre del producto usando el ID almacenado en itemName */}
                             <span className="font-medium">
                               {getProductNameById(item.itemName)}
                             </span>
@@ -663,7 +748,11 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                         <Eye className="h-4 w-4 mr-1" />
                         Ver
                       </Button>
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadPDF(invoice)}
+                      >
                         <Download className="h-4 w-4 mr-1" />
                         PDF
                       </Button>
@@ -714,7 +803,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                   <p>{selectedInvoice.customerName}</p>
                 </div>
                 <div>
-                  <Label className="font-semibold">CI/RUC:</Label>
+                  <Label className="font-semibold">CI/RIF:</Label>
                   <p>{selectedInvoice.idCard}</p>
                 </div>
                 <div>
@@ -760,6 +849,19 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Componente PDF oculto */}
+      <div
+        style={{
+          position: "absolute",
+          left: "-9999px",
+          top: "-9999px",
+          width: "210mm",
+          height: "297mm",
+        }}
+      >
+        {pdfInvoice && <InvoicePDF invoice={pdfInvoice} pdfRef={targetRef} />}
+      </div>
     </div>
   );
 }

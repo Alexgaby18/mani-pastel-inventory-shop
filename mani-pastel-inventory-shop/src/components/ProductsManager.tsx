@@ -1,19 +1,25 @@
-import { ChangeEvent, FormEvent, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  Package, 
-  Plus, 
-  Search, 
-  Edit, 
+import { ChangeEvent, FormEvent, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  ArrowLeft,
+  Package,
+  Plus,
+  Search,
+  Edit,
   Trash2,
   AlertTriangle,
-  CheckCircle
-} from 'lucide-react';
+  CheckCircle,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,10 +35,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useProduct } from '@/context/use.product';
-import { Product} from '@/interfaces/product.interface';
-import { useBrand } from '@/context/use.brand';
-
+import { useProduct } from "@/context/use.product";
+import { Product } from "@/interfaces/product.interface";
+import { useBrand } from "@/context/use.brand";
 
 interface ProductsManagerProps {
   onBack: () => void;
@@ -40,74 +45,84 @@ interface ProductsManagerProps {
 
 export function ProductsManager({ onBack }: ProductsManagerProps) {
   // Estados locales
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newProduct, setNewProduct] = useState({
-    codigo: '',
-    nombre: '',
+    codigo: "",
+    nombre: "",
     stock: 0,
     precio: 0,
     costo: 0,
     flete: 0,
-    marca_id: '',
-    unidad_de_medida: 'Unidad'
+    marca_id: "",
+    unidad_de_medida: "Unidad",
   });
   const [editProduct, setEditProduct] = useState({
-    codigo: '',
-    nombre: '',
+    codigo: "",
+    nombre: "",
     stock: 0,
     precio: 0,
     costo: 0,
     flete: 0,
-    marca_id: '',
-    unidad_de_medida: 'Unidad'
+    marca_id: "",
+    unidad_de_medida: "Unidad",
   });
 
   // Hook del contexto
-  const { products, createProduct, updateProduct, deleteProduct } = useProduct();
+  const { products, createProduct, updateProduct, deleteProduct } =
+    useProduct();
   const { brands, loading: brandsLoading } = useBrand();
+  const [duplicateCodeError, setDuplicateCodeError] = useState(false);
 
-  const filteredProducts = products?.filter(
-  (product: Product) =>
-    typeof product.name === "string" &&
-    typeof product.code === "string" &&
-    (
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.code.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-) || [];
+  const filteredProducts =
+    products?.filter(
+      (product: Product) =>
+        typeof product.name === "string" &&
+        typeof product.code === "string" &&
+        (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.code.toLowerCase().includes(searchTerm.toLowerCase()))
+    ) || [];
 
   const getStockStatus = (stock: number) => {
-    if (stock === 0) return { status: 'out', color: 'bg-destructive text-destructive-foreground' };
-    if (stock <= 5) return { status: 'low', color: 'bg-warning text-warning-foreground' };
-    return { status: 'good', color: 'bg-success text-success-foreground' };
+    if (stock === 0)
+      return {
+        status: "out",
+        color: "bg-destructive text-destructive-foreground",
+      };
+    if (stock <= 5)
+      return { status: "low", color: "bg-warning text-warning-foreground" };
+    return { status: "good", color: "bg-success text-success-foreground" };
   };
 
   // Manejar cambios en el formulario de crear
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewProduct({
       ...newProduct,
-      [name]: name === 'stock' || name === 'precio' || name === 'costo' || name === 'flete' 
-        ? parseFloat(value) || 0 
-        : value
+      [name]:
+        name === "stock" ||
+        name === "precio" ||
+        name === "costo" ||
+        name === "flete"
+          ? parseFloat(value) || 0
+          : value,
     });
   };
 
   // Manejar cambios en el formulario de editar
-  const handleEditChange = (
-    e: ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleEditChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditProduct({
       ...editProduct,
-      [name]: name === 'stock' || name === 'precio' || name === 'costo' || name === 'flete' 
-        ? parseFloat(value) || 0 
-        : value
+      [name]:
+        name === "stock" ||
+        name === "precio" ||
+        name === "costo" ||
+        name === "flete"
+          ? parseFloat(value) || 0
+          : value,
     });
   };
 
@@ -115,7 +130,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   const handleSelectChange = (name: string, value: string) => {
     setNewProduct({
       ...newProduct,
-      [name]: value
+      [name]: value,
     });
   };
 
@@ -123,7 +138,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   const handleEditSelectChange = (name: string, value: string) => {
     setEditProduct({
       ...editProduct,
-      [name]: value
+      [name]: value,
     });
   };
 
@@ -138,7 +153,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
       costo: product.cost,
       flete: product.flete,
       marca_id: product.brand,
-      unidad_de_medida: product.unit_measure
+      unidad_de_medida: product.unit_measure,
     });
     setIsEditDialogOpen(true);
   };
@@ -146,6 +161,21 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   // Manejar envío del formulario de crear
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Verificar si el código ya existe
+    const codeExists = products?.some(
+      (product: Product) =>
+        product.code &&
+        product.code.toLowerCase() === newProduct.codigo.toLowerCase()
+    );
+
+    if (codeExists) {
+      setDuplicateCodeError(true);
+      return;
+    }
+
+    setDuplicateCodeError(false);
+
     if (newProduct.codigo && newProduct.nombre) {
       try {
         await handleCreateProduct({
@@ -156,21 +186,21 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           cost: newProduct.costo,
           flete: newProduct.flete,
           brand: newProduct.marca_id,
-          unit_measure: newProduct.unidad_de_medida
+          unit_measure: newProduct.unidad_de_medida,
         });
         setNewProduct({
-          codigo: '',
-          nombre: '',
+          codigo: "",
+          nombre: "",
           stock: 0,
           precio: 0,
           costo: 0,
           flete: 0,
-          marca_id: '',
-          unidad_de_medida: 'Unidad'
+          marca_id: "",
+          unidad_de_medida: "Unidad",
         });
         setIsAddDialogOpen(false);
       } catch (error) {
-        console.error('Error al crear producto:', error);
+        console.error("Error al crear producto:", error);
       }
     }
   };
@@ -178,6 +208,22 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   // Manejar envío del formulario de editar
   const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Verificar si el código ya existe (excepto para el producto que estamos editando)
+    const codeExists = products?.some(
+      (product: Product) =>
+        product.code &&
+        product.code.toLowerCase() === editProduct.codigo.toLowerCase() &&
+        product._id !== editingProduct?._id
+    );
+
+    if (codeExists) {
+      setDuplicateCodeError(true);
+      return;
+    }
+
+    setDuplicateCodeError(false);
+
     if (editProduct.codigo && editProduct.nombre && editingProduct) {
       try {
         await handleUpdateProduct(editingProduct._id, {
@@ -188,24 +234,23 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           cost: editProduct.costo,
           flete: editProduct.flete,
           brand: editProduct.marca_id,
-          unit_measure: editProduct.unidad_de_medida
+          unit_measure: editProduct.unidad_de_medida,
         });
-        
-        // Cerrar modal y limpiar estados
+
         setIsEditDialogOpen(false);
         setEditingProduct(null);
         setEditProduct({
-          codigo: '',
-          nombre: '',
+          codigo: "",
+          nombre: "",
           stock: 0,
           precio: 0,
           costo: 0,
           flete: 0,
-          marca_id: '',
-          unidad_de_medida: 'Unidad'
+          marca_id: "",
+          unidad_de_medida: "Unidad",
         });
       } catch (error) {
-        console.error('Error al actualizar producto:', error);
+        console.error("Error al actualizar producto:", error);
       }
     }
   };
@@ -226,7 +271,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
       await deleteProduct(productId);
       // Asumiendo que deleteProduct ya actualiza el estado local
     } catch (error) {
-      console.error('Error al eliminar producto:', error);
+      console.error("Error al eliminar producto:", error);
     }
   };
 
@@ -236,7 +281,11 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
       <div className="bg-card border-b border-border shadow-sm">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-3">
-            <Button variant="ghost" onClick={onBack} className="text-muted-foreground hover:text-foreground">
+            <Button
+              variant="ghost"
+              onClick={onBack}
+              className="text-muted-foreground hover:text-foreground"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
@@ -244,11 +293,21 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
               <Package className="h-6 w-6 text-accent-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Gestión de Productos</h1>
-              <p className="text-sm text-muted-foreground">Administra tu inventario de productos</p>
+              <h1 className="text-xl font-bold text-foreground">
+                Gestión de Productos
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Administra tu inventario de productos
+              </p>
             </div>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog
+            open={isAddDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (!open) setDuplicateCodeError(false);
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 <Plus className="h-4 w-4 mr-2" />
@@ -270,10 +329,20 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                       id="codigo"
                       name="codigo"
                       value={newProduct.codigo}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        setDuplicateCodeError(false);
+                        handleChange(e);
+                      }}
                       placeholder="ESM001"
                       required
                     />
+                    {duplicateCodeError && (
+                      <p className="text-sm text-destructive flex items-center">
+                        <AlertTriangle className="h-4 w-4 mr-1" />
+                        Este código ya está en uso. Por favor, ingresa uno
+                        diferente.
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="nombre">Nombre</Label>
@@ -335,35 +404,44 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="marca">Marca</Label>
-                    <Select 
-                      onValueChange={(value) => handleSelectChange('marca_id', value)}
+                    <Select
+                      onValueChange={(value) =>
+                        handleSelectChange("marca_id", value)
+                      }
                       disabled={brandsLoading}
                     >
                       <SelectTrigger>
-                      <SelectValue placeholder={
-                        brandsLoading ? "Cargando marcas..." : "Selecciona una marca"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brandsLoading ? (
-                        <div className="p-2 text-center text-sm text-muted-foreground">
-                          Cargando marcas...
-                        </div>
-                      ) : (
-                        brands.map((brand) => (
-                          <SelectItem key={brand._id} value={brand._id}>
-                            {brand.name} {/* Asumiendo que tu interfaz Brand tiene 'name' */}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                        <SelectValue
+                          placeholder={
+                            brandsLoading
+                              ? "Cargando marcas..."
+                              : "Selecciona una marca"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brandsLoading ? (
+                          <div className="p-2 text-center text-sm text-muted-foreground">
+                            Cargando marcas...
+                          </div>
+                        ) : (
+                          brands.map((brand) => (
+                            <SelectItem key={brand._id} value={brand._id}>
+                              {brand.name}{" "}
+                              {/* Asumiendo que tu interfaz Brand tiene 'name' */}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="unidad">Unidad de Medida</Label>
-                    <Select 
-                      value={newProduct.unidad_de_medida} 
-                      onValueChange={(value) => handleSelectChange('unidad_de_medida', value)}
+                    <Select
+                      value={newProduct.unidad_de_medida}
+                      onValueChange={(value) =>
+                        handleSelectChange("unidad_de_medida", value)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona unidad" />
@@ -378,10 +456,17 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddDialogOpen(false)}
+                  >
                     Cancelar
                   </Button>
-                  <Button type="submit" className="bg-primary hover:bg-primary/90">
+                  <Button
+                    type="submit"
+                    className="bg-primary hover:bg-primary/90"
+                  >
                     Agregar Producto
                   </Button>
                 </div>
@@ -392,7 +477,13 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
       </div>
 
       {/* Modal de Edición */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) setDuplicateCodeError(false);
+        }}
+      >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Editar Producto</DialogTitle>
@@ -408,10 +499,20 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   id="edit-codigo"
                   name="codigo"
                   value={editProduct.codigo}
-                  onChange={handleEditChange}
+                  onChange={(e) => {
+                    setDuplicateCodeError(false);
+                    handleEditChange(e);
+                  }}
                   placeholder="ESM001"
                   required
                 />
+                {duplicateCodeError && (
+                  <p className="text-sm text-destructive flex items-center">
+                    <AlertTriangle className="h-4 w-4 mr-1" />
+                    Este código ya está en uso. Por favor, ingresa uno
+                    diferente.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-nombre">Nombre</Label>
@@ -473,15 +574,21 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-marca">Marca</Label>
-                <Select 
-                  value={editProduct.marca_id} 
-                  onValueChange={(value) => handleEditSelectChange('marca_id', value)}
+                <Select
+                  value={editProduct.marca_id}
+                  onValueChange={(value) =>
+                    handleEditSelectChange("marca_id", value)
+                  }
                   disabled={brandsLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={
-                      brandsLoading ? "Cargando marcas..." : "Selecciona una marca"
-                    } />
+                    <SelectValue
+                      placeholder={
+                        brandsLoading
+                          ? "Cargando marcas..."
+                          : "Selecciona una marca"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {brandsLoading ? (
@@ -491,7 +598,8 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                     ) : (
                       brands.map((brand) => (
                         <SelectItem key={brand._id} value={brand._id}>
-                          {brand.name} {/* Asumiendo que tu interfaz Brand tiene 'name' */}
+                          {brand.name}{" "}
+                          {/* Asumiendo que tu interfaz Brand tiene 'name' */}
                         </SelectItem>
                       ))
                     )}
@@ -500,9 +608,11 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-unidad">Unidad de Medida</Label>
-                <Select 
-                  value={editProduct.unidad_de_medida} 
-                  onValueChange={(value) => handleEditSelectChange('unidad_de_medida', value)}
+                <Select
+                  value={editProduct.unidad_de_medida}
+                  onValueChange={(value) =>
+                    handleEditSelectChange("unidad_de_medida", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona unidad" />
@@ -517,7 +627,11 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
               </div>
             </div>
             <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsEditDialogOpen(false)}
+              >
                 Cancelar
               </Button>
               <Button type="submit" className="bg-primary hover:bg-primary/90">
@@ -550,15 +664,23 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProducts.map((product: Product) => {
             const stockStatus = getStockStatus(product.stock);
-            const brandName = brands.find(b => b._id === product.brand)?.name || 'Sin marca';
-            
+            const brandName =
+              brands.find((b) => b._id === product.brand)?.name || "Sin marca";
+
             return (
-              <Card key={product._id} className="border-primary/20 hover:shadow-lg transition-shadow">
+              <Card
+                key={product._id}
+                className="border-primary/20 hover:shadow-lg transition-shadow"
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-lg text-foreground">{product.name}</CardTitle>
-                      <CardDescription>{product.code} • {brandName}</CardDescription>
+                      <CardTitle className="text-lg text-foreground">
+                        {product.name}
+                      </CardTitle>
+                      <CardDescription>
+                        {product.code} • {brandName}
+                      </CardDescription>
                     </div>
                     <Badge className={stockStatus.color}>
                       {product.stock} {product.unit_measure}
@@ -569,43 +691,47 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Precio:</span>
-                      <span className="font-medium text-foreground">${product.price}</span>
+                      <span className="font-medium text-foreground">
+                        ${product.price}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Costo:</span>
-                      <span className="font-medium text-foreground">${product.cost}</span>
+                      <span className="font-medium text-foreground">
+                        ${product.cost}
+                      </span>
                     </div>
-                    {stockStatus.status === 'out' && (
+                    {stockStatus.status === "out" && (
                       <div className="flex items-center text-destructive text-sm">
                         <AlertTriangle className="h-4 w-4 mr-1" />
                         Sin Stock - Requiere reposición
                       </div>
                     )}
-                    {stockStatus.status === 'low' && (
+                    {stockStatus.status === "low" && (
                       <div className="flex items-center text-warning text-sm">
                         <AlertTriangle className="h-4 w-4 mr-1" />
                         Stock bajo - Requiere reposición
                       </div>
                     )}
-                    {stockStatus.status === 'good' && (
+                    {stockStatus.status === "good" && (
                       <div className="flex items-center text-success text-sm">
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Stock disponible
                       </div>
                     )}
                     <div className="flex space-x-2 pt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex-1"
                         onClick={() => handleEditProduct(product)}
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Editar
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="text-destructive hover:bg-destructive/10"
                         onClick={() => handleDeleteProduct(product._id)}
                       >
@@ -623,11 +749,18 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           <Card className="text-center py-8">
             <CardContent>
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No se encontraron productos</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                No se encontraron productos
+              </h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm ? 'Intenta con otros términos de búsqueda.' : 'Comienza agregando tu primer producto.'}
+                {searchTerm
+                  ? "Intenta con otros términos de búsqueda."
+                  : "Comienza agregando tu primer producto."}
               </p>
-              <Button onClick={() => setIsAddDialogOpen(true)} className="bg-primary hover:bg-primary/90">
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar Producto
               </Button>
