@@ -15,7 +15,10 @@ import { InvoiceModule } from './invoice/invoice.module';
       isGlobal: true,
     }),
     ProductModule,
-    MongooseModule.forRoot('mongodb://localhost/inventory', {}),
+    MongooseModule.forRoot(
+      'mongodb+srv://alexgabriela2003:nNZdqfzdrpznj5r7@nailsinventory.f2ao3qy.mongodb.net/inventory?retryWrites=true&w=majority',
+      {},
+    ),
     AuthModule,
     brandModule,
     InvoiceModule,
