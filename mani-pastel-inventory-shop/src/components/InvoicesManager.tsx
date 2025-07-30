@@ -22,6 +22,10 @@ import {
   User,
   Phone,
   DollarSign,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -59,7 +63,6 @@ const InvoicePDF = ({
       className="p-6"
       style={{ width: "210mm", height: "297mm" }}
     >
-      {/* resto del contenido igual */}
       <h1 className="text-2xl font-bold mb-4">
         Factura {invoice.invoiceNumber}
       </h1>
@@ -119,6 +122,15 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
   const { invoices, createInvoice } = useContext(InvoiceContext);
   const { products, getProducts } = useContext(ProductContext);
 
+  // Estados de paginación para facturas
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // Estados de paginación para productos en el modal
+  const [productPage, setProductPage] = useState(1);
+  const [productItemsPerPage] = useState(12);
+  const [productSearchTerm, setProductSearchTerm] = useState("");
+
   // Estados
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -141,15 +153,27 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
   });
   const [pdfInvoice, setPdfInvoice] = useState<Invoice | null>(null);
 
-  // Usamos useRef para el elemento que contendrá el PDF
-
   const { toPDF, targetRef } = usePDF({
     filename: "factura.pdf",
     page: {
-      margin: 20, // Margen en mm (o usa un objeto: { top: 20, right: 20, bottom: 20, left: 20 })
+      margin: 20,
       format: "A4",
     },
   });
+// Facturas de hoy
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+    
+  const todayInvoices = invoices.filter(invoice => {
+      const invoiceDate = new Date(invoice.dateIssued);
+      invoiceDate.setHours(0, 0, 0, 0);
+      return invoiceDate.getTime() === today.getTime();
+    });
+    
+    // Ingresos del día
+    const todayRevenue = todayInvoices.reduce((total, invoice) => {
+      return total + invoice.totalAmount;
+    }, 0);
 
   // Función para obtener el nombre del producto por ID
   const getProductNameById = (productId: string) => {
@@ -157,15 +181,20 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
     return product ? product.name : "Producto no encontrado";
   };
 
-  // Procesar facturas
-  const processedInvoices = invoices.map((invoice) => ({
-    ...invoice,
-    dateIssued: invoice.dateIssued ? new Date(invoice.dateIssued) : new Date(),
-    items: invoice.items.map((item) => ({
-      ...item,
-      productName: getProductNameById(item.itemName),
-    })),
-  }));
+  // Procesar facturas y ordenar por más recientes primero
+  const processedInvoices = invoices
+    .map((invoice) => ({
+      ...invoice,
+      dateIssued: invoice.dateIssued ? new Date(invoice.dateIssued) : new Date(),
+      items: invoice.items.map((item) => ({
+        ...item,
+        productName: getProductNameById(item.itemName),
+      })),
+    }))
+    .sort((a, b) => {
+      // Ordenar por fecha más reciente primero
+      return new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime();
+    });
 
   // Función para formatear fechas
   const formatDate = (date: Date | string) => {
@@ -232,6 +261,62 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
       invoice.idCard.includes(searchTerm) ||
       invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Paginación de facturas
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedInvoices = filteredInvoices.slice(startIndex, endIndex);
+
+  // Funciones de paginación para facturas
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToFirstPage = () => goToPage(1);
+  const goToLastPage = () => goToPage(totalPages);
+  const goToNextPage = () => goToPage(currentPage + 1);
+  const goToPreviousPage = () => goToPage(currentPage - 1);
+
+  // Filtrar y paginar productos para el modal
+  const filteredProducts = products
+    .filter(
+      (product) =>
+        product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+        product.code.toLowerCase().includes(productSearchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Ordenar por stock disponible primero, luego por nombre
+      if (a.stock > 0 && b.stock <= 0) return -1;
+      if (a.stock <= 0 && b.stock > 0) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+  const totalProductPages = Math.ceil(filteredProducts.length / productItemsPerPage);
+  const productStartIndex = (productPage - 1) * productItemsPerPage;
+  const productEndIndex = productStartIndex + productItemsPerPage;
+  const paginatedProductsForModal = filteredProducts.slice(productStartIndex, productEndIndex);
+
+  // Funciones de paginación para productos
+  const goToProductPage = (page: number) => {
+    setProductPage(Math.max(1, Math.min(page, totalProductPages)));
+  };
+
+  const goToFirstProductPage = () => goToProductPage(1);
+  const goToLastProductPage = () => goToProductPage(totalProductPages);
+  const goToNextProductPage = () => goToProductPage(productPage + 1);
+  const goToPreviousProductPage = () => goToProductPage(productPage - 1);
+
+  // Reset pages when search changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handleProductSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProductSearchTerm(e.target.value);
+    setProductPage(1);
+  };
 
   // Agregar producto a la factura
   const handleAddProduct = (productId: string) => {
@@ -337,6 +422,9 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
         items: [],
       });
       setIsAddDialogOpen(false);
+      setCurrentPage(1); // Ir a la primera página para ver la nueva factura
+      setProductPage(1); // Reset product page
+      setProductSearchTerm(""); // Reset product search
     } catch (error) {
       console.error("Error creating invoice:", error);
       alert("Error al crear la factura");
@@ -361,22 +449,21 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
 
   // Descargar PDF
   const handleDownloadPDF = (invoice: Invoice) => {
-  // Procesar la factura para convertir IDs a nombres de productos
-  const processedInvoice = {
-    ...invoice,
-    dateIssued: invoice.dateIssued instanceof Date ? invoice.dateIssued : new Date(invoice.dateIssued),
-    items: invoice.items.map((item) => ({
-      ...item,
-      itemName: getProductNameById(item.itemName), // ← ESTO ES CLAVE
-    })),
+    const processedInvoice = {
+      ...invoice,
+      dateIssued: invoice.dateIssued instanceof Date ? invoice.dateIssued : new Date(invoice.dateIssued),
+      items: invoice.items.map((item) => ({
+        ...item,
+        itemName: getProductNameById(item.itemName),
+      })),
+    };
+    
+    setPdfInvoice(processedInvoice);
+    
+    setTimeout(() => {
+      toPDF();
+    }, 300);
   };
-  
-  setPdfInvoice(processedInvoice);
-  
-  setTimeout(() => {
-    toPDF();
-  }, 300);
-};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-primary-glow/10">
@@ -400,11 +487,20 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                 Gestión de Facturas
               </h1>
               <p className="text-sm text-muted-foreground">
-                Administra las ventas y facturas
+                Administra las ventas y facturas ({filteredInvoices.length} facturas)
               </p>
             </div>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog 
+            open={isAddDialogOpen} 
+            onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (!open) {
+                setProductPage(1);
+                setProductSearchTerm("");
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="bg-success hover:bg-success/90 text-accent-foreground">
                 <Plus className="h-4 w-4 mr-2" />
@@ -502,80 +598,146 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                   </div>
                 </div>
 
-                {/* Lista de productos disponibles */}
+                {/* Lista de productos disponibles con paginación */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">
-                    Productos Disponibles
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Productos Disponibles</h3>
+                    <div className="text-sm text-muted-foreground">
+                      {filteredProducts.length} productos encontrados
+                    </div>
+                  </div>
+                  
+                  {/* Búsqueda de productos */}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar productos por nombre o código..."
+                      value={productSearchTerm}
+                      onChange={handleProductSearchChange}
+                      className="pl-10"
+                    />
+                  </div>
+
                   {isLoadingProducts ? (
                     <div>Cargando productos...</div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {products.map((product) => {
-                        const itemInInvoice = newInvoice.items.find(
-                          (item) => item.itemName === product._id
-                        );
-                        const currentQuantity = itemInInvoice
-                          ? itemInInvoice.quantity
-                          : 0;
-                        const hasStock = (product.stock || 0) > currentQuantity;
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {paginatedProductsForModal.map((product) => {
+                          const itemInInvoice = newInvoice.items.find(
+                            (item) => item.itemName === product._id
+                          );
+                          const currentQuantity = itemInInvoice
+                            ? itemInInvoice.quantity
+                            : 0;
+                          const hasStock = (product.stock || 0) > currentQuantity;
 
-                        return (
-                          <Card
-                            key={product._id}
-                            className={`cursor-pointer hover:shadow-md transition-shadow ${
-                              !hasStock
-                                ? "border-destructive bg-destructive/10"
-                                : "border-success/30"
-                            }`}
-                            onClick={() =>
-                              hasStock && handleAddProduct(product._id)
-                            }
-                          >
-                            <CardHeader className="pb-2">
-                              <CardTitle className="text-sm">
-                                {product.name}
-                              </CardTitle>
-                              <CardDescription>{product.code}</CardDescription>
-                              {!hasStock && (
-                                <Badge
-                                  variant="destructive"
-                                  className="text-xs"
-                                >
-                                  Sin Stock suficiente
-                                </Badge>
-                              )}
-                            </CardHeader>
-                            <CardContent>
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <span className="text-lg font-bold">
-                                    ${product.price.toFixed(2)}
-                                  </span>
-                                  <p
-                                    className={`text-xs ${
-                                      !hasStock
-                                        ? "text-destructive"
-                                        : "text-muted-foreground"
-                                    }`}
+                          return (
+                            <Card
+                              key={product._id}
+                              className={`cursor-pointer hover:shadow-md transition-shadow ${
+                                !hasStock
+                                  ? "border-destructive bg-destructive/10"
+                                  : "border-success/30"
+                              }`}
+                              onClick={() =>
+                                hasStock && handleAddProduct(product._id)
+                              }
+                            >
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-sm">
+                                  {product.name}
+                                </CardTitle>
+                                <CardDescription>{product.code}</CardDescription>
+                                {!hasStock && (
+                                  <Badge
+                                    variant="destructive"
+                                    className="text-xs"
                                   >
-                                    Stock: {product.stock || 0} | En factura:{" "}
-                                    {currentQuantity}
-                                  </p>
+                                    Sin Stock suficiente
+                                  </Badge>
+                                )}
+                              </CardHeader>
+                              <CardContent>
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <span className="text-lg font-bold">
+                                      ${product.price.toFixed(2)}
+                                    </span>
+                                    <p
+                                      className={`text-xs ${
+                                        !hasStock
+                                          ? "text-destructive"
+                                          : "text-muted-foreground"
+                                      }`}
+                                    >
+                                      Stock: {product.stock || 0} | En factura:{" "}
+                                      {currentQuantity}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={!hasStock}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={!hasStock}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+
+                      {/* Paginación de productos */}
+                      {totalProductPages > 1 && (
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="text-sm text-muted-foreground">
+                            Página {productPage} de {totalProductPages} | 
+                            Mostrando {productStartIndex + 1}-{Math.min(productEndIndex, filteredProducts.length)} de {filteredProducts.length}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={goToFirstProductPage}
+                              disabled={productPage === 1}
+                            >
+                              <ChevronsLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={goToPreviousProductPage}
+                              disabled={productPage === 1}
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            
+                            <span className="text-sm">
+                              {productPage} / {totalProductPages}
+                            </span>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={goToNextProductPage}
+                              disabled={productPage === totalProductPages}
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={goToLastProductPage}
+                              disabled={productPage === totalProductPages}
+                            >
+                              <ChevronsRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -647,14 +809,19 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
           <Card className="lg:col-span-2 border-success/30">
             <CardContent className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar facturas por cliente, CI o número..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+              <div className="flex items-center justify-between space-x-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar facturas por cliente, CI o número..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Mostrando {startIndex + 1}-{Math.min(endIndex, filteredInvoices.length)} de {filteredInvoices.length}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -679,23 +846,21 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
           <Card className="border-success/30">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Ingresos
+                Total Ingresos del Día
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 $
-                {processedInvoices
-                  .reduce((total, inv) => total + inv.totalAmount, 0)
-                  .toFixed(2)}
+                {todayRevenue.toFixed(2)}
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Invoices List */}
-        <div className="space-y-4">
-          {filteredInvoices.map((invoice) => (
+        <div className="space-y-4 mb-6">
+          {paginatedInvoices.map((invoice) => (
             <Card
               key={invoice._id}
               className="border-success/30 hover:shadow-lg transition-shadow"
@@ -763,6 +928,80 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
             </Card>
           ))}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <Card className="border-success/30 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Página {currentPage} de {totalPages}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToFirstPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(pageNum)}
+                        className="w-8"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToLastPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {filteredInvoices.length === 0 && (
           <Card className="text-center py-8">

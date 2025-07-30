@@ -19,6 +19,10 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import {
   Dialog,
@@ -44,6 +48,10 @@ interface ProductsManagerProps {
 }
 
 export function ProductsManager({ onBack }: ProductsManagerProps) {
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12); // Puedes hacer esto configurable
+
   // Estados locales
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -76,14 +84,43 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   const { brands, loading: brandsLoading } = useBrand();
   const [duplicateCodeError, setDuplicateCodeError] = useState(false);
 
-  const filteredProducts =
-    products?.filter(
+  // Ordenar productos por fecha de creación (más recientes primero) y filtrar
+  const filteredProducts = products
+    ?.filter(
       (product: Product) =>
         typeof product.name === "string" &&
         typeof product.code === "string" &&
         (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           product.code.toLowerCase().includes(searchTerm.toLowerCase()))
-    ) || [];
+    )
+    .sort((a: Product, b: Product) => {
+      // Asumiendo que los productos tienen una fecha de creación
+      const dateA = new Date(a.dateAdded || a._id).getTime();
+      const dateB = new Date(b.dateAdded || b._id).getTime();
+      return dateB - dateA; // Más recientes primero
+    }) || [];
+
+  // Cálculos de paginación
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  // Funciones de paginación
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToFirstPage = () => goToPage(1);
+  const goToLastPage = () => goToPage(totalPages);
+  const goToNextPage = () => goToPage(currentPage + 1);
+  const goToPreviousPage = () => goToPage(currentPage - 1);
+
+  // Reset page when search changes
+  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
 
   const getStockStatus = (stock: number) => {
     if (stock === 0)
@@ -199,6 +236,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           unidad_de_medida: "Unidad",
         });
         setIsAddDialogOpen(false);
+        setCurrentPage(1); // Ir a la primera página para ver el nuevo producto
       } catch (error) {
         console.error("Error al crear producto:", error);
       }
@@ -269,7 +307,11 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   const handleDeleteProduct = async (productId: string) => {
     try {
       await deleteProduct(productId);
-      // Asumiendo que deleteProduct ya actualiza el estado local
+      // Ajustar página si es necesario después de eliminar
+      const newTotalPages = Math.ceil((filteredProducts.length - 1) / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      }
     } catch (error) {
       console.error("Error al eliminar producto:", error);
     }
@@ -297,7 +339,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 Gestión de Productos
               </h1>
               <p className="text-sm text-muted-foreground">
-                Administra tu inventario de productos
+                Administra tu inventario de productos ({filteredProducts.length} productos)
               </p>
             </div>
           </div>
@@ -427,8 +469,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                         ) : (
                           brands.map((brand) => (
                             <SelectItem key={brand._id} value={brand._id}>
-                              {brand.name}{" "}
-                              {/* Asumiendo que tu interfaz Brand tiene 'name' */}
+                              {brand.name}
                             </SelectItem>
                           ))
                         )}
@@ -476,7 +517,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         </div>
       </div>
 
-      {/* Modal de Edición */}
+      {/* Modal de Edición - Mantiene la misma estructura que antes */}
       <Dialog
         open={isEditDialogOpen}
         onOpenChange={(open) => {
@@ -598,8 +639,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                     ) : (
                       brands.map((brand) => (
                         <SelectItem key={brand._id} value={brand._id}>
-                          {brand.name}{" "}
-                          {/* Asumiendo que tu interfaz Brand tiene 'name' */}
+                          {brand.name}
                         </SelectItem>
                       ))
                     )}
@@ -646,23 +686,26 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         {/* Search and Filters */}
         <Card className="mb-6 border-primary/20">
           <CardContent className="p-4">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-between space-x-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar productos por nombre o código..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={handleSearchChange}
                   className="pl-10"
                 />
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} de {filteredProducts.length} productos
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Products List */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredProducts.map((product: Product) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          {paginatedProducts.map((product: Product) => {
             const stockStatus = getStockStatus(product.stock);
             const brandName =
               brands.find((b) => b._id === product.brand)?.name || "Sin marca";
@@ -744,6 +787,80 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
             );
           })}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <Card className="border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Página {currentPage} de {totalPages}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToFirstPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(pageNum)}
+                        className="w-8"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToLastPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {filteredProducts.length === 0 && (
           <Card className="text-center py-8">

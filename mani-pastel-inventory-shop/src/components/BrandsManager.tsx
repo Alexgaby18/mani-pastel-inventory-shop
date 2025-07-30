@@ -3,7 +3,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Sparkles, Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Sparkles, 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight
+} from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader,
   DialogTitle, DialogTrigger
@@ -16,6 +27,11 @@ interface BrandsManagerProps {
 }
 
 export function BrandsManager({ onBack }: BrandsManagerProps) {
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12); // Puedes hacer esto configurable
+
+  // Estados locales
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -25,15 +41,41 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
 
   const { brands, createBrand, updateBrand, deleteBrand, loading, fetchBrands } = useBrand();
 
-
-  const filteredBrands= brands?.filter(
-    (brand: Brand) =>
-      typeof brand.name === "string" &&
-      (
+  // Ordenar marcas por fecha de creación (más recientes primero) y filtrar
+  const filteredBrands = brands
+    ?.filter(
+      (brand: Brand) =>
+        typeof brand.name === "string" &&
         brand.name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-  ) || [];
-  
+    )
+    .sort((a: Brand, b: Brand) => {
+      // Asumiendo que las marcas tienen una fecha de creación
+      const dateA = new Date(a.dateAdded || a._id).getTime();
+      const dateB = new Date(b.dateAdded || b._id).getTime();
+      return dateB - dateA; // Más recientes primero
+    }) || [];
+
+  // Cálculos de paginación
+  const totalPages = Math.ceil(filteredBrands.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedBrands = filteredBrands.slice(startIndex, endIndex);
+
+  // Funciones de paginación
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToFirstPage = () => goToPage(1);
+  const goToLastPage = () => goToPage(totalPages);
+  const goToNextPage = () => goToPage(currentPage + 1);
+  const goToPreviousPage = () => goToPage(currentPage - 1);
+
+  // Reset page when search changes
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
 
   const handleAddBrand = async () => {
     if (newBrandName.trim()) {
@@ -41,6 +83,7 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
         await createBrand({ name: newBrandName.trim() });
         setNewBrandName('');
         setIsAddDialogOpen(false);
+        setCurrentPage(1); // Ir a la primera página para ver la nueva marca
       } catch (error) {
         console.error('Error creating brand:', error);
       }
@@ -70,6 +113,11 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
   const handleDeleteBrand = async (id: string) => {
     try {
       await deleteBrand(id);
+      // Ajustar página si es necesario después de eliminar
+      const newTotalPages = Math.ceil((filteredBrands.length - 1) / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      }
     } catch (error) {
       console.error('Error deleting brand:', error);
     }
@@ -98,7 +146,9 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
           <Sparkles className="h-6 w-6" />
           <div>
             <h1 className="text-xl font-bold">Gestión de Marcas</h1>
-            <p className="text-sm text-muted-foreground">Administra las marcas de tus productos</p>
+            <p className="text-sm text-muted-foreground">
+              Administra las marcas de tus productos ({filteredBrands.length} marcas)
+            </p>
           </div>
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -131,58 +181,156 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
         </Dialog>
       </div>
 
-      {/* Search */}
-      <Card className="mb-6 border-primary/20">
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar marca..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+      <div className="p-6">
+        {/* Search */}
+        <Card className="mb-6 border-primary/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between space-x-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar marca..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  className="pl-10"
+                />
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredBrands.length)} de {filteredBrands.length} marcas
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Brands List */}
-      <div className="grid gap-4 px-6 pb-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredBrands.map((brand) => (
-          <Card key={brand._id}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-3">
-                  <Sparkles className="h-5 w-5" />
-                  <div>
-                    <CardTitle>{brand.name}</CardTitle>
-                    <CardDescription>ID: {brand._id}</CardDescription>
+        {/* Brands List */}
+        <div className="grid gap-4 mb-6 md:grid-cols-2 lg:grid-cols-3">
+          {paginatedBrands.map((brand) => (
+            <Card key={brand._id}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Sparkles className="h-5 w-5" />
+                    <div>
+                      <CardTitle>{brand.name}</CardTitle>
+                      <CardDescription>ID: {brand._id}</CardDescription>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex space-x-2 pt-2">
-                <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEditBrand(brand)}>
-                  <Edit className="h-4 w-4 mr-1" />
-                  Editar
-                </Button>
-                <Button variant="outline" size="sm" className="text-destructive" onClick={() => handleDeleteBrand(brand._id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="flex space-x-2 pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1" 
+                    onClick={() => handleEditBrand(brand)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Editar
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-destructive hover:bg-destructive/10" 
+                    onClick={() => handleDeleteBrand(brand._id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <Card className="border-primary/20 mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  Página {currentPage} de {totalPages}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToFirstPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => goToPage(pageNum)}
+                        className="w-8"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToLastPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
-        ))}
+        )}
+
         {filteredBrands.length === 0 && (
-          <Card className="text-center py-8 col-span-full">
+          <Card className="text-center py-8">
             <CardContent>
               <Sparkles className="h-12 w-12 mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No se encontraron marcas</h3>
-              <p className="mb-4">{searchTerm ? 'Intenta con otros términos de búsqueda.' : 'Comienza agregando tu primera marca.'}</p>
-              <Button onClick={() => setIsAddDialogOpen(true)} className="bg-accent hover:bg-accent/90">
+              <p className="mb-4">
+                {searchTerm 
+                  ? 'Intenta con otros términos de búsqueda.' 
+                  : 'Comienza agregando tu primera marca.'
+                }
+              </p>
+              <Button 
+                onClick={() => setIsAddDialogOpen(true)} 
+                className="bg-accent hover:bg-accent/90"
+              >
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar Marca
               </Button>
