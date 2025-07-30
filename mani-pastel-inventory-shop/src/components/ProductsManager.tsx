@@ -489,8 +489,6 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Unidad">Unidad</SelectItem>
-                        <SelectItem value="Gramos">Gramos</SelectItem>
-                        <SelectItem value="Mililitros">Mililitros</SelectItem>
                         <SelectItem value="Paquete">Paquete</SelectItem>
                       </SelectContent>
                     </Select>
@@ -659,8 +657,6 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Unidad">Unidad</SelectItem>
-                    <SelectItem value="Gramos">Gramos</SelectItem>
-                    <SelectItem value="Mililitros">Mililitros</SelectItem>
                     <SelectItem value="Paquete">Paquete</SelectItem>
                   </SelectContent>
                 </Select>
