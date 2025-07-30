@@ -1,0 +1,69 @@
+import { Injectable } from '@nestjs/common';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { Product } from './interfaces/product.interfaces';
+import { CreateProductDTO } from './dto/product.dto';
+import { UpdatedProductDTO } from './dto/udapted.product.dto';
+
+@Injectable()
+export class ProductService {
+  constructor(
+    @InjectModel('Product') private readonly productModel: Model<Product>,
+  ) {}
+
+  async getAllProducts(): Promise<Product[]> {
+    const products = await this.productModel.find();
+    return products;
+  }
+
+  async getProductById(id: string): Promise<Product | null> {
+    const product = await this.productModel.findById(id);
+    return product;
+  }
+
+  async createProduct(createProductDto: CreateProductDTO): Promise<Product> {
+    const newProduct = new this.productModel(createProductDto);
+    return await newProduct.save();
+  }
+
+  async deleteProduct(id: string): Promise<Product | null> {
+    const deletedProduct = await this.productModel.findByIdAndDelete(id);
+    return deletedProduct;
+  }
+
+  async updateProduct(
+    id: string,
+    updatedProducts: UpdatedProductDTO,
+  ): Promise<Product | null> {
+    const updatedProduct = await this.productModel.findByIdAndUpdate(
+      id,
+      updatedProducts,
+      {
+        new: true,
+      },
+    );
+    return updatedProduct;
+  }
+  async decrementStock(productId: string, quantity: number): Promise<boolean> {
+    const result = await this.productModel.updateOne(
+      {
+        _id: productId,
+        stock: { $gte: quantity }, // Solo actualiza si hay suficiente stock
+      },
+      {
+        $inc: { stock: -quantity }, // Disminuye el stock
+      },
+    );
+
+    if (result.matchedCount === 0) {
+      // No se encontró el producto o no hay suficiente stock
+      const product = await this.productModel.findById(productId);
+      if (!product) {
+        throw new Error('Producto no encontrado');
+      }
+      throw new Error('Stock insuficiente');
+    }
+
+    return true;
+  }
+}
