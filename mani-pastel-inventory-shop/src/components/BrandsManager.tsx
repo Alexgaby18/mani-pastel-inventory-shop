@@ -137,56 +137,69 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <div className="border-b shadow-sm p-4 flex justify-between items-center bg-card">
-        <div className="flex space-x-3 items-center">
-          <Button variant="ghost" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
-          <Sparkles className="h-6 w-6" />
-          <div>
-            <h1 className="text-xl font-bold">Gestión de Marcas</h1>
-            <p className="text-sm text-muted-foreground">
-              Administra las marcas de tus productos ({filteredBrands.length} marcas)
-            </p>
-          </div>
-        </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-accent hover:bg-accent/90">
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Marca
+      <div className="border-b shadow-sm p-4 bg-card">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex space-x-3 items-center">
+            <Button variant="ghost" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Volver
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Agregar Nueva Marca</DialogTitle>
-              <DialogDescription>Ingresa el nombre de la nueva marca</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Label htmlFor="brandName">Nombre de la Marca</Label>
-              <Input
-                id="brandName"
-                value={newBrandName}
-                onChange={(e) => setNewBrandName(e.target.value)}
-                placeholder="Beauty Pro"
-                onKeyPress={(e) => e.key === 'Enter' && handleAddBrand()}
-              />
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleAddBrand} className="bg-accent hover:bg-accent/90">Agregar Marca</Button>
-              </div>
+            <Sparkles className="h-6 w-6" />
+            <div>
+              <h1 className="text-xl font-bold">Gestión de Marcas</h1>
+              <p className="text-sm text-muted-foreground">
+                Administra las marcas de tus productos ({filteredBrands.length} marcas)
+              </p>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-accent hover:bg-accent/90 w-full sm:w-auto">
+                <Plus className="h-4 w-4 mr-2" />
+                Agregar Marca
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="mx-4">
+              <DialogHeader>
+                <DialogTitle>Agregar Nueva Marca</DialogTitle>
+                <DialogDescription>Ingresa el nombre de la nueva marca</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Label htmlFor="brandName">Nombre de la Marca</Label>
+                <Input
+                  id="brandName"
+                  value={newBrandName}
+                  onChange={(e) => setNewBrandName(e.target.value)}
+                  placeholder="Beauty Pro"
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddBrand()}
+                />
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsAddDialogOpen(false)}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleAddBrand} 
+                    className="bg-accent hover:bg-accent/90 w-full sm:w-auto"
+                  >
+                    Agregar Marca
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Search */}
         <Card className="mb-6 border-primary/20">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between space-x-4">
-              <div className="relative flex-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar marca..."
@@ -195,7 +208,7 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
                   className="pl-10"
                 />
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground whitespace-nowrap">
                 Mostrando {startIndex + 1}-{Math.min(endIndex, filteredBrands.length)} de {filteredBrands.length} marcas
               </div>
             </div>
@@ -212,7 +225,6 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
                     <Sparkles className="h-5 w-5" />
                     <div>
                       <CardTitle>{brand.name}</CardTitle>
-                      <CardDescription>ID: {brand._id}</CardDescription>
                     </div>
                   </div>
                 </div>
@@ -246,11 +258,11 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
         {totalPages > 1 && (
           <Card className="border-primary/20 mb-6">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                 <div className="text-sm text-muted-foreground">
                   Página {currentPage} de {totalPages}
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 overflow-x-auto">
                   <Button
                     variant="outline"
                     size="sm"
@@ -268,31 +280,33 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   
-                  {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => goToPage(pageNum)}
-                        className="w-8"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                  {/* Page numbers - Hidden on mobile */}
+                  <div className="hidden sm:flex items-center space-x-2">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => goToPage(pageNum)}
+                          className="w-8"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
 
                   <Button
                     variant="outline"
@@ -341,7 +355,7 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
 
       {/* Edit Brand Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="mx-4">
           <DialogHeader>
             <DialogTitle>Editar Marca</DialogTitle>
             <DialogDescription>Modifica el nombre de la marca</DialogDescription>
@@ -355,9 +369,20 @@ export function BrandsManager({ onBack }: BrandsManagerProps) {
               placeholder="Beauty Pro"
               onKeyPress={(e) => e.key === 'Enter' && handleUpdateBrand()}
             />
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleUpdateBrand} className="bg-accent hover:bg-accent/90">Actualizar Marca</Button>
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+                className="w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleUpdateBrand} 
+                className="bg-accent hover:bg-accent/90 w-full sm:w-auto"
+              >
+                Actualizar Marca
+              </Button>
             </div>
           </div>
         </DialogContent>
