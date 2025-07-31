@@ -50,7 +50,7 @@ interface ProductsManagerProps {
 export function ProductsManager({ onBack }: ProductsManagerProps) {
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12); // Puedes hacer esto configurable
+  const [itemsPerPage] = useState(12);
 
   // Estados locales
   const [searchTerm, setSearchTerm] = useState("");
@@ -84,7 +84,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   const { brands, loading: brandsLoading } = useBrand();
   const [duplicateCodeError, setDuplicateCodeError] = useState(false);
 
-  // Ordenar productos por fecha de creación (más recientes primero) y filtrar
+  // Ordenar y filtrar productos
   const filteredProducts = products
     ?.filter(
       (product: Product) =>
@@ -94,10 +94,9 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           product.code.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     .sort((a: Product, b: Product) => {
-      // Asumiendo que los productos tienen una fecha de creación
       const dateA = new Date(a.dateAdded || a._id).getTime();
       const dateB = new Date(b.dateAdded || b._id).getTime();
-      return dateB - dateA; // Más recientes primero
+      return dateB - dateA;
     }) || [];
 
   // Cálculos de paginación
@@ -116,10 +115,9 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   const goToNextPage = () => goToPage(currentPage + 1);
   const goToPreviousPage = () => goToPage(currentPage - 1);
 
-  // Reset page when search changes
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const getStockStatus = (stock: number) => {
@@ -133,7 +131,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     return { status: "good", color: "bg-success text-success-foreground" };
   };
 
-  // Manejar cambios en el formulario de crear
+  // Manejar cambios en los formularios
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewProduct({
@@ -148,7 +146,6 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     });
   };
 
-  // Manejar cambios en el formulario de editar
   const handleEditChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setEditProduct({
@@ -163,7 +160,6 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     });
   };
 
-  // Manejar cambios en los selects para crear
   const handleSelectChange = (name: string, value: string) => {
     setNewProduct({
       ...newProduct,
@@ -171,7 +167,6 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     });
   };
 
-  // Manejar cambios en los selects para editar
   const handleEditSelectChange = (name: string, value: string) => {
     setEditProduct({
       ...editProduct,
@@ -179,7 +174,6 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     });
   };
 
-  // Abrir modal de edición
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setEditProduct({
@@ -195,11 +189,9 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     setIsEditDialogOpen(true);
   };
 
-  // Manejar envío del formulario de crear
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Verificar si el código ya existe
     const codeExists = products?.some(
       (product: Product) =>
         product.code &&
@@ -215,7 +207,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
 
     if (newProduct.codigo && newProduct.nombre) {
       try {
-        await handleCreateProduct({
+        await createProduct({
           code: newProduct.codigo,
           name: newProduct.nombre,
           stock: newProduct.stock,
@@ -236,18 +228,16 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           unidad_de_medida: "Unidad",
         });
         setIsAddDialogOpen(false);
-        setCurrentPage(1); // Ir a la primera página para ver el nuevo producto
+        setCurrentPage(1);
       } catch (error) {
         console.error("Error al crear producto:", error);
       }
     }
   };
 
-  // Manejar envío del formulario de editar
   const handleEditSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Verificar si el código ya existe (excepto para el producto que estamos editando)
     const codeExists = products?.some(
       (product: Product) =>
         product.code &&
@@ -264,7 +254,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
 
     if (editProduct.codigo && editProduct.nombre && editingProduct) {
       try {
-        await handleUpdateProduct(editingProduct._id, {
+        await updateProduct(editingProduct._id, {
           code: editProduct.codigo,
           name: editProduct.nombre,
           stock: editProduct.stock,
@@ -293,21 +283,9 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
     }
   };
 
-  // Funciones de manejo consistentes
-  const handleCreateProduct = async (product: any) => {
-    const newProduct = await createProduct(product);
-    // Asumiendo que createProduct ya actualiza el estado local
-  };
-
-  const handleUpdateProduct = async (id: string, product: any) => {
-    const updatedProduct = await updateProduct(id, product);
-    // Asumiendo que updateProduct ya actualiza el estado local
-  };
-
   const handleDeleteProduct = async (productId: string) => {
     try {
       await deleteProduct(productId);
-      // Ajustar página si es necesario después de eliminar
       const newTotalPages = Math.ceil((filteredProducts.length - 1) / itemsPerPage);
       if (currentPage > newTotalPages && newTotalPages > 0) {
         setCurrentPage(newTotalPages);
@@ -318,26 +296,18 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-primary-glow/10">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-card border-b border-border shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              onClick={onBack}
-              className="text-muted-foreground hover:text-foreground"
-            >
+      <div className="border-b shadow-sm p-4 bg-card">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex space-x-3 items-center">
+            <Button variant="ghost" onClick={onBack}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <Package className="h-6 w-6 text-accent-foreground" />
-            </div>
+            <Package className="h-6 w-6" />
             <div>
-              <h1 className="text-xl font-bold text-foreground">
-                Gestión de Productos
-              </h1>
+              <h1 className="text-xl font-bold">Gestión de Productos</h1>
               <p className="text-sm text-muted-foreground">
                 Administra tu inventario de productos ({filteredProducts.length} productos)
               </p>
@@ -351,12 +321,12 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button className="bg-accent hover:bg-accent/90 w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar Producto
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl mx-4">
               <DialogHeader>
                 <DialogTitle>Agregar Nuevo Producto</DialogTitle>
                 <DialogDescription>
@@ -364,7 +334,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="codigo">Código</Label>
                     <Input
@@ -381,8 +351,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                     {duplicateCodeError && (
                       <p className="text-sm text-destructive flex items-center">
                         <AlertTriangle className="h-4 w-4 mr-1" />
-                        Este código ya está en uso. Por favor, ingresa uno
-                        diferente.
+                        Este código ya está en uso. Por favor, ingresa uno diferente.
                       </p>
                     )}
                   </div>
@@ -494,17 +463,18 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                     </Select>
                   </div>
                 </div>
-                <div className="flex justify-end space-x-2 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => setIsAddDialogOpen(false)}
+                    className="w-full sm:w-auto"
                   >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-primary hover:bg-primary/90"
+                    className="bg-accent hover:bg-accent/90 w-full sm:w-auto"
                   >
                     Agregar Producto
                   </Button>
@@ -515,7 +485,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         </div>
       </div>
 
-      {/* Modal de Edición - Mantiene la misma estructura que antes */}
+      {/* Modal de Edición */}
       <Dialog
         open={isEditDialogOpen}
         onOpenChange={(open) => {
@@ -523,7 +493,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           if (!open) setDuplicateCodeError(false);
         }}
       >
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl mx-4">
           <DialogHeader>
             <DialogTitle>Editar Producto</DialogTitle>
             <DialogDescription>
@@ -531,7 +501,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-codigo">Código</Label>
                 <Input
@@ -548,8 +518,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 {duplicateCodeError && (
                   <p className="text-sm text-destructive flex items-center">
                     <AlertTriangle className="h-4 w-4 mr-1" />
-                    Este código ya está en uso. Por favor, ingresa uno
-                    diferente.
+                    Este código ya está en uso. Por favor, ingresa uno diferente.
                   </p>
                 )}
               </div>
@@ -662,15 +631,16 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 </Select>
               </div>
             </div>
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
+                className="w-full sm:w-auto"
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90">
+              <Button type="submit" className="bg-accent hover:bg-accent/90 w-full sm:w-auto">
                 Guardar Cambios
               </Button>
             </div>
@@ -678,12 +648,12 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         </DialogContent>
       </Dialog>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Search and Filters */}
         <Card className="mb-6 border-primary/20">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between space-x-4">
-              <div className="relative flex-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar productos por nombre o código..."
@@ -692,7 +662,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   className="pl-10"
                 />
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground whitespace-nowrap">
                 Mostrando {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} de {filteredProducts.length} productos
               </div>
             </div>
@@ -786,13 +756,13 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <Card className="border-primary/20">
+          <Card className="border-primary/20 mb-6">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                 <div className="text-sm text-muted-foreground">
                   Página {currentPage} de {totalPages}
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 overflow-x-auto">
                   <Button
                     variant="outline"
                     size="sm"
@@ -810,31 +780,33 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
                   
-                  {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => goToPage(pageNum)}
-                        className="w-8"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                  {/* Page numbers - Hidden on mobile */}
+                  <div className="hidden sm:flex items-center space-x-2">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => goToPage(pageNum)}
+                          className="w-8"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
 
                   <Button
                     variant="outline"
@@ -861,18 +833,17 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
         {filteredProducts.length === 0 && (
           <Card className="text-center py-8">
             <CardContent>
-              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                No se encontraron productos
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm
-                  ? "Intenta con otros términos de búsqueda."
-                  : "Comienza agregando tu primer producto."}
+              <Package className="h-12 w-12 mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No se encontraron productos</h3>
+              <p className="mb-4">
+                {searchTerm 
+                  ? 'Intenta con otros términos de búsqueda.' 
+                  : 'Comienza agregando tu primer producto.'
+                }
               </p>
-              <Button
-                onClick={() => setIsAddDialogOpen(true)}
-                className="bg-primary hover:bg-primary/90"
+              <Button 
+                onClick={() => setIsAddDialogOpen(true)} 
+                className="bg-accent hover:bg-accent/90"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Agregar Producto

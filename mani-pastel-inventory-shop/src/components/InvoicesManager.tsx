@@ -26,6 +26,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Minus,
+  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -160,7 +162,8 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
       format: "A4",
     },
   });
-// Facturas de hoy
+
+  // Facturas de hoy
   const today = new Date();
   today.setHours(0, 0, 0, 0);
     
@@ -373,6 +376,73 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
     }
   };
 
+  // Reducir cantidad de producto
+  const handleReduceProduct = (productId: string) => {
+    setNewInvoice((prev) => {
+      const existingItem = prev.items.find(
+        (item) => item.itemName === productId
+      );
+
+      if (!existingItem) return prev;
+
+      if (existingItem.quantity <= 1) {
+        // Si solo hay 1, eliminar el item completamente
+        const updatedItems = prev.items.filter(
+          (item) => item.itemName !== productId
+        );
+        
+        const totalAmount = updatedItems.reduce(
+          (total, item) => total + item.quantity * item.pricePerItem,
+          0
+        );
+
+        return {
+          ...prev,
+          items: updatedItems,
+          totalAmount,
+        };
+      } else {
+        // Reducir la cantidad en 1
+        const updatedItems = prev.items.map((item) =>
+          item.itemName === productId
+            ? { ...item, quantity: item.quantity - 1 }
+            : item
+        );
+
+        const totalAmount = updatedItems.reduce(
+          (total, item) => total + item.quantity * item.pricePerItem,
+          0
+        );
+
+        return {
+          ...prev,
+          items: updatedItems,
+          totalAmount,
+        };
+      }
+    });
+  };
+
+  // Eliminar producto completamente
+  const handleRemoveProduct = (productId: string) => {
+    setNewInvoice((prev) => {
+      const updatedItems = prev.items.filter(
+        (item) => item.itemName !== productId
+      );
+      
+      const totalAmount = updatedItems.reduce(
+        (total, item) => total + item.quantity * item.pricePerItem,
+        0
+      );
+
+      return {
+        ...prev,
+        items: updatedItems,
+        totalAmount,
+      };
+    });
+  };
+
   // Validar campo genérico
   const validateField = (name: string, value: string) => {
     if (!value.trim()) {
@@ -469,7 +539,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
     <div className="min-h-screen bg-gradient-to-br from-background to-primary-glow/10">
       {/* Header */}
       <div className="bg-card border-b border-border shadow-sm">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
           <div className="flex items-center space-x-3">
             <Button
               variant="ghost"
@@ -502,12 +572,12 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
             }}
           >
             <DialogTrigger asChild>
-              <Button className="bg-success hover:bg-success/90 text-accent-foreground">
+              <Button className="bg-success hover:bg-success/90 text-accent-foreground w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Nueva Factura
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto mx-4">
               <DialogHeader>
                 <DialogTitle>Crear Nueva Factura</DialogTitle>
                 <DialogDescription>
@@ -516,7 +586,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
               </DialogHeader>
               <div className="space-y-6">
                 {/* Datos de la factura y cliente */}
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="invoiceNumber">Número de Factura*</Label>
                     <Input
@@ -600,7 +670,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
 
                 {/* Lista de productos disponibles con paginación */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <h3 className="text-lg font-semibold">Productos Disponibles</h3>
                     <div className="text-sm text-muted-foreground">
                       {filteredProducts.length} productos encontrados
@@ -622,7 +692,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                     <div>Cargando productos...</div>
                   ) : (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {paginatedProductsForModal.map((product) => {
                           const itemInInvoice = newInvoice.items.find(
                             (item) => item.itemName === product._id
@@ -691,7 +761,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
 
                       {/* Paginación de productos */}
                       {totalProductPages > 1 && (
-                        <div className="flex items-center justify-between mt-4">
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
                           <div className="text-sm text-muted-foreground">
                             Página {productPage} de {totalProductPages} | 
                             Mostrando {productStartIndex + 1}-{Math.min(productEndIndex, filteredProducts.length)} de {filteredProducts.length}
@@ -751,20 +821,46 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                       {newInvoice.items.map((item, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
+                          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-muted/30 rounded-lg gap-2"
                         >
-                          <div>
+                          <div className="flex-1">
                             <span className="font-medium">
                               {getProductNameById(item.itemName)}
                             </span>
                           </div>
-                          <div className="flex items-center space-x-4">
-                            <span>Cantidad: {item.quantity}</span>
-                            <span>Precio: ${item.pricePerItem.toFixed(2)}</span>
-                            <span className="font-bold">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm">Cantidad: {item.quantity}</span>
+                              <div className="flex items-center space-x-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleReduceProduct(item.itemName)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleAddProduct(item.itemName)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            <span className="text-sm">Precio: ${item.pricePerItem.toFixed(2)}</span>
+                            <span className="font-bold text-sm">
                               Subtotal: $
                               {(item.quantity * item.pricePerItem).toFixed(2)}
                             </span>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleRemoveProduct(item.itemName)}
+                              className="ml-2"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -783,16 +879,17 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                   )
                 )}
 
-                <div className="flex justify-end space-x-2 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
                   <Button
                     variant="outline"
                     onClick={() => setIsAddDialogOpen(false)}
+                    className="w-full sm:w-auto"
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleCreateInvoice}
-                    className="bg-success hover:bg-success/90"
+                    className="bg-success hover:bg-success/90 w-full sm:w-auto"
                     disabled={!isFormValid()}
                   >
                     Crear Factura
@@ -804,13 +901,13 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
         </div>
       </div>
 
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Search and Stats */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
           <Card className="lg:col-span-2 border-success/30">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between space-x-4">
-                <div className="relative flex-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 sm:space-x-4">
+                <div className="relative flex-1 w-full">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar facturas por cliente, CI o número..."
@@ -819,7 +916,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                     className="pl-10"
                   />
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground whitespace-nowrap">
                   Mostrando {startIndex + 1}-{Math.min(endIndex, filteredInvoices.length)} de {filteredInvoices.length}
                 </div>
               </div>
@@ -866,33 +963,37 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
               className="border-success/30 hover:shadow-lg transition-shadow"
             >
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-success/20 p-3 rounded-lg">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-4 lg:space-y-0">
+                  <div className="flex items-start space-x-4 w-full lg:w-auto">
+                    <div className="bg-success/20 p-3 rounded-lg flex-shrink-0">
                       <FileText className="h-6 w-6 text-accent-foreground" />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">
                         {invoice.invoiceNumber}
                       </h3>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-muted-foreground mt-2">
                         <div className="flex items-center">
-                          <User className="h-4 w-4 mr-1" />
-                          {invoice.customerName}
+                          <User className="h-4 w-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">{invoice.customerName}</span>
                         </div>
                         <div className="flex items-center">
-                          <Phone className="h-4 w-4 mr-1" />
-                          {invoice.customerPhone || "N/A"}
+                          <Phone className="h-4 w-4 mr-1 flex-shrink-0" />
+                          <span className="truncate">{invoice.customerPhone || "N/A"}</span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {formatDate(invoice.dateIssued)}
+                          <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
+                          <span>{formatDate(invoice.dateIssued)}</span>
+                        </div>
+                        <div className="flex items-center lg:hidden">
+                          <DollarSign className="h-4 w-4 mr-1 flex-shrink-0" />
+                          <span className="font-bold">{invoice.totalAmount.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full lg:w-auto space-y-4 sm:space-y-0 sm:space-x-4">
+                    <div className="hidden lg:block text-right">
                       <div className="flex items-center text-lg font-bold text-foreground">
                         <DollarSign className="h-5 w-5 mr-1" />
                         {invoice.totalAmount.toFixed(2)}
@@ -904,11 +1005,12 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                         {invoice.items.length} productos
                       </Badge>
                     </div>
-                    <div className="flex space-x-2">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => viewInvoice(invoice)}
+                        className="w-full sm:w-auto"
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         Ver
@@ -917,6 +1019,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDownloadPDF(invoice)}
+                        className="w-full sm:w-auto"
                       >
                         <Download className="h-4 w-4 mr-1" />
                         PDF
@@ -933,11 +1036,11 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
         {totalPages > 1 && (
           <Card className="border-success/30 mb-6">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                 <div className="text-sm text-muted-foreground">
                   Página {currentPage} de {totalPages}
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 overflow-x-auto">
                   <Button
                     variant="outline"
                     size="sm"
@@ -956,30 +1059,32 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                   </Button>
                   
                   {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => goToPage(pageNum)}
-                        className="w-8"
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
+                  <div className="hidden sm:flex items-center space-x-2">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => goToPage(pageNum)}
+                          className="w-8"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
 
                   <Button
                     variant="outline"
@@ -1029,25 +1134,25 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
 
       {/* View Invoice Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl mx-4">
           <DialogHeader>
             <DialogTitle>Factura {selectedInvoice?.invoiceNumber}</DialogTitle>
             <DialogDescription>Detalles de la factura</DialogDescription>
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="font-semibold">Cliente:</Label>
-                  <p>{selectedInvoice.customerName}</p>
+                  <p className="break-words">{selectedInvoice.customerName}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">CI/RIF:</Label>
-                  <p>{selectedInvoice.idCard}</p>
+                  <p className="break-words">{selectedInvoice.idCard}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Teléfono:</Label>
-                  <p>{selectedInvoice.customerPhone}</p>
+                  <p className="break-words">{selectedInvoice.customerPhone}</p>
                 </div>
                 <div>
                   <Label className="font-semibold">Fecha:</Label>
@@ -1061,13 +1166,13 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
                   {selectedInvoice.items.map((item, index) => (
                     <div
                       key={index}
-                      className="flex justify-between items-center p-3 bg-muted/30 rounded-lg"
+                      className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-muted/30 rounded-lg space-y-2 sm:space-y-0"
                     >
-                      <div>
-                        <span className="font-medium">{item.itemName}</span>
+                      <div className="flex-1">
+                        <span className="font-medium break-words">{item.itemName}</span>
                       </div>
-                      <div className="text-right">
-                        <div>
+                      <div className="text-right w-full sm:w-auto">
+                        <div className="text-sm">
                           {item.quantity} x ${item.pricePerItem.toFixed(2)}
                         </div>
                         <div className="font-bold">
