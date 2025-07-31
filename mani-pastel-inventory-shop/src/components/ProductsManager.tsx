@@ -85,19 +85,20 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   const [duplicateCodeError, setDuplicateCodeError] = useState(false);
 
   // Ordenar y filtrar productos
-  const filteredProducts = products
-    ?.filter(
-      (product: Product) =>
-        typeof product.name === "string" &&
-        typeof product.code === "string" &&
-        (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          product.code.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
-    .sort((a: Product, b: Product) => {
-      const dateA = new Date(a.dateAdded || a._id).getTime();
-      const dateB = new Date(b.dateAdded || b._id).getTime();
-      return dateB - dateA;
-    }) || [];
+  const filteredProducts =
+    products
+      ?.filter(
+        (product: Product) =>
+          typeof product.name === "string" &&
+          typeof product.code === "string" &&
+          (product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            product.code.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+      .sort((a: Product, b: Product) => {
+        const dateA = new Date(a.dateAdded || a._id).getTime();
+        const dateB = new Date(b.dateAdded || b._id).getTime();
+        return dateB - dateA;
+      }) || [];
 
   // Cálculos de paginación
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
@@ -286,7 +287,9 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
   const handleDeleteProduct = async (productId: string) => {
     try {
       await deleteProduct(productId);
-      const newTotalPages = Math.ceil((filteredProducts.length - 1) / itemsPerPage);
+      const newTotalPages = Math.ceil(
+        (filteredProducts.length - 1) / itemsPerPage
+      );
       if (currentPage > newTotalPages && newTotalPages > 0) {
         setCurrentPage(newTotalPages);
       }
@@ -309,7 +312,8 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
             <div>
               <h1 className="text-xl font-bold">Gestión de Productos</h1>
               <p className="text-sm text-muted-foreground">
-                Administra tu inventario de productos ({filteredProducts.length} productos)
+                Administra tu inventario de productos ({filteredProducts.length}{" "}
+                productos)
               </p>
             </div>
           </div>
@@ -326,15 +330,15 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 Agregar Producto
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl mx-4">
+            <DialogContent className="max-w-[95vw] sm:max-w-2xl mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Agregar Nuevo Producto</DialogTitle>
                 <DialogDescription>
                   Completa la información del nuevo producto
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="space-y-4 px-1 pb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="codigo">Código</Label>
                     <Input
@@ -351,7 +355,8 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                     {duplicateCodeError && (
                       <p className="text-sm text-destructive flex items-center">
                         <AlertTriangle className="h-4 w-4 mr-1" />
-                        Este código ya está en uso. Por favor, ingresa uno diferente.
+                        Este código ya está en uso. Por favor, ingresa uno
+                        diferente.
                       </p>
                     )}
                   </div>
@@ -463,7 +468,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                     </Select>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 bg-background pb-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -493,15 +498,16 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           if (!open) setDuplicateCodeError(false);
         }}
       >
-        <DialogContent className="max-w-2xl mx-4">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Producto</DialogTitle>
             <DialogDescription>
               Modifica la información del producto seleccionado
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEditSubmit}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <form onSubmit={handleEditSubmit} className="space-y-4 px-1 pb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Campos del formulario (se mantienen igual) */}
               <div className="space-y-2">
                 <Label htmlFor="edit-codigo">Código</Label>
                 <Input
@@ -518,7 +524,8 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 {duplicateCodeError && (
                   <p className="text-sm text-destructive flex items-center">
                     <AlertTriangle className="h-4 w-4 mr-1" />
-                    Este código ya está en uso. Por favor, ingresa uno diferente.
+                    Este código ya está en uso. Por favor, ingresa uno
+                    diferente.
                   </p>
                 )}
               </div>
@@ -631,7 +638,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 </Select>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2 bg-background pb-2">
               <Button
                 type="button"
                 variant="outline"
@@ -640,7 +647,10 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-accent hover:bg-accent/90 w-full sm:w-auto">
+              <Button
+                type="submit"
+                className="bg-accent hover:bg-accent/90 w-full sm:w-auto"
+              >
                 Guardar Cambios
               </Button>
             </div>
@@ -663,7 +673,9 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                 />
               </div>
               <div className="text-sm text-muted-foreground whitespace-nowrap">
-                Mostrando {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} de {filteredProducts.length} productos
+                Mostrando {startIndex + 1}-
+                {Math.min(endIndex, filteredProducts.length)} de{" "}
+                {filteredProducts.length} productos
               </div>
             </div>
           </CardContent>
@@ -779,7 +791,7 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  
+
                   {/* Page numbers - Hidden on mobile */}
                   <div className="hidden sm:flex items-center space-x-2">
                     {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -793,11 +805,13 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
                       } else {
                         pageNum = currentPage - 2 + i;
                       }
-                      
+
                       return (
                         <Button
                           key={pageNum}
-                          variant={currentPage === pageNum ? "default" : "outline"}
+                          variant={
+                            currentPage === pageNum ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={() => goToPage(pageNum)}
                           className="w-8"
@@ -834,15 +848,16 @@ export function ProductsManager({ onBack }: ProductsManagerProps) {
           <Card className="text-center py-8">
             <CardContent>
               <Package className="h-12 w-12 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No se encontraron productos</h3>
+              <h3 className="text-lg font-medium mb-2">
+                No se encontraron productos
+              </h3>
               <p className="mb-4">
-                {searchTerm 
-                  ? 'Intenta con otros términos de búsqueda.' 
-                  : 'Comienza agregando tu primer producto.'
-                }
+                {searchTerm
+                  ? "Intenta con otros términos de búsqueda."
+                  : "Comienza agregando tu primer producto."}
               </p>
-              <Button 
-                onClick={() => setIsAddDialogOpen(true)} 
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
                 className="bg-accent hover:bg-accent/90"
               >
                 <Plus className="h-4 w-4 mr-2" />
