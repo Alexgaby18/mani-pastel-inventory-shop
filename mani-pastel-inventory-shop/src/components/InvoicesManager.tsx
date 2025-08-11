@@ -483,6 +483,7 @@ export function InvoicesManager({ onBack }: InvoicesManagerProps) {
 
     try {
       await createInvoice(newInvoice);
+      await getProducts(); // Actualizar stock de productos
       setNewInvoice({
         invoiceNumber: "",
         customerName: "",
